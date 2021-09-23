@@ -72,7 +72,7 @@ start_date_str = start_date.strftime('%Y-%m-%d')
 end_date_str = end_date.strftime('%Y-%m-%d')
 
 st.title('COVID-19 Correlation Explorer')
-st.subheader('Find out what relationships exist between number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates.')
+st.subheader('Find out what relationships exist between number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates among U.S. states.')
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def load_data():
