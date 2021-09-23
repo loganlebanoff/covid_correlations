@@ -10,7 +10,71 @@ import pickle
 from collections import defaultdict
 from dotenv import load_dotenv
 import datetime
+import dateutil.parser
 import streamlit as st
+from matplotlib.offsetbox import AnchoredText
+
+us_state_to_abbrev = {
+    "Alabama": "AL",
+    "Alaska": "AK",
+    "Arizona": "AZ",
+    "Arkansas": "AR",
+    "California": "CA",
+    "Colorado": "CO",
+    "Connecticut": "CT",
+    "Delaware": "DE",
+    "Florida": "FL",
+    "Georgia": "GA",
+    "Hawaii": "HI",
+    "Idaho": "ID",
+    "Illinois": "IL",
+    "Indiana": "IN",
+    "Iowa": "IA",
+    "Kansas": "KS",
+    "Kentucky": "KY",
+    "Louisiana": "LA",
+    "Maine": "ME",
+    "Maryland": "MD",
+    "Massachusetts": "MA",
+    "Michigan": "MI",
+    "Minnesota": "MN",
+    "Mississippi": "MS",
+    "Missouri": "MO",
+    "Montana": "MT",
+    "Nebraska": "NE",
+    "Nevada": "NV",
+    "New Hampshire": "NH",
+    "New Jersey": "NJ",
+    "New Mexico": "NM",
+    "New York": "NY",
+    "North Carolina": "NC",
+    "North Dakota": "ND",
+    "Ohio": "OH",
+    "Oklahoma": "OK",
+    "Oregon": "OR",
+    "Pennsylvania": "PA",
+    "Rhode Island": "RI",
+    "South Carolina": "SC",
+    "South Dakota": "SD",
+    "Tennessee": "TN",
+    "Texas": "TX",
+    "Utah": "UT",
+    "Vermont": "VT",
+    "Virginia": "VA",
+    "Washington": "WA",
+    "West Virginia": "WV",
+    "Wisconsin": "WI",
+    "Wyoming": "WY",
+}
+states = list(sorted(us_state_to_abbrev.values()))
+
+earlier_start_date = datetime.date(2020, 3, 1)
+start_date = datetime.date(2020, 4, 1)
+end_date = datetime.date(2021, 9, 20)
+start_date_str = start_date.strftime('%Y-%m-%d')
+end_date_str = end_date.strftime('%Y-%m-%d')
+
+st.title('COVID-19 Correlation Explorer')
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def load_data():
@@ -22,26 +86,20 @@ def load_data():
     result = requests.get(f'https://api.covidactnow.org/v2/states.timeseries.json?apiKey={covidactnow_api_key}')
     data = result.json()
 
-    start_date = datetime.date(2020, 4, 1)
-    end_date = datetime.date(2021, 9, 20)
-    start_date_str = start_date.strftime('%Y-%m-%d')
-    end_date_str = end_date.strftime('%Y-%m-%d')
-
 
     # with open('data.json', 'w') as f:
     #     json.dump(data, f, indent=2)
 
-    states = []
     vaccines = []
     temps = []
     date2temps = defaultdict(list)
     date2cases = defaultdict(list)
     dates = [start_date + datetime.timedelta(days=x) for x in range((end_date-start_date).days + 1)]
+    ealier_dates = [earlier_start_date + datetime.timedelta(days=x) for x in range((end_date-earlier_start_date).days + 1)]
     for row in data:
         state = row['state']
-        if state == 'MP':
+        if state not in us_state_to_abbrev.values():
             continue
-        states.append(state)
         population = row['population']
         for daterow_idx, daterow in enumerate(row['actualsTimeseries']):
             cases = []
@@ -82,7 +140,7 @@ def load_data():
             ave_temp = np.mean(past_7_days)
             date2temps[date].append(ave_temp)
 
-    return dates, date2temps, date2cases, vaccines, states
+    return dates, ealier_dates, date2temps, date2cases, vaccines, states
 
     # temp_filename = 'temps_{}.pkl'.format(temp_date)
     # if os.path.exists(temp_filename):
@@ -112,50 +170,175 @@ def load_data():
     #     with open(temp_filename, 'w') as f:
     #         json.dump(rows, f, indent=2)
 
-dates, date2temps, date2cases, vaccines, states = load_data()
+dates, ealier_dates, date2temps, date2cases, vaccines, states = load_data()
 
-delay = st.slider('Days Delay', 0, 30, 0)
+with open('data/mask_mandate.tsv') as f:
+    lines = f.read().splitlines()
+state2startmaskmandate = {}
+state2endmaskmandate = {}
+cur_state = None
+for line in lines:
+    if '\t' in line:
+        items = line.strip().split('\t')
+        cur_state = items[0]
+        start = items[1]
+        end = items[2]
+        if start == 'N/A':
+            start = datetime.date(1970, 1, 1)
+        else:
+            start = dateutil.parser.parse(start).date()
+        if end == 'N/A':
+            end = datetime.date(1970, 1, 1)
+        elif end == 'Ongoing':
+            end = datetime.date.today()
+        else:
+            end = dateutil.parser.parse(end).date()
+        state2startmaskmandate[cur_state] = start
+        state2endmaskmandate[cur_state] = end
+print(len(list(state2startmaskmandate.keys())))
+date2maskmandate = defaultdict(list)
+for state, start in state2startmaskmandate.items():
+    end = state2endmaskmandate[state]
+    for date in ealier_dates:
+        if date >= start and date <= end:
+            date2maskmandate[date.strftime('%Y-%m-%d')].append(1)
+        else:
+            date2maskmandate[date.strftime('%Y-%m-%d')].append(0)
 
-corrs_temp = []
-ps_temp = []
-corrs_vacc = []
-ps_vacc = []
+
+
+X_choices = {
+    'Temperature-Cases Correlation': {
+        'title': 'Temperature-Cases Correlation',
+        'x_label': 'Temperature (°F)',
+        'date': 'delayed',
+        'var': date2temps,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+    },
+    'Vaccines-Cases Correlation': {
+        'title': 'Vaccines-Cases Correlation',
+        'x_label': 'Vaccines',
+        'date': 'none',
+        'var': vaccines,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+    },
+    'Mask Mandate-Cases Correlation': {
+        'title': 'Mask Mandate-Cases Correlation',
+        'x_label': 'Has Mask Mandate (1 if yes, 0 if no)',
+        'date': 'delayed',
+        'var': date2maskmandate,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+    }
+}
+
+footer_text = 'Where did I get my data? Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). COVID cases and vaccinations were taken from COVID Act Now API (https://covidactnow.org/). Mask Mandate information was taken from Start Date and End Date found in this table: https://en.wikipedia.org/wiki/Face_masks_during_the_COVID-19_pandemic_in_the_United_States#Summary_of_orders_and_recommendations_issued_by_states'
+hide_menu = """
+<style>
+footer:before{
+    content:'%s';
+    display:block;
+    position:relative;
+}
+</style>
+""" % (footer_text)
+st.markdown(hide_menu, unsafe_allow_html=True)
+
+selected_X_keys = st.sidebar.multiselect('Select data:', X_choices.keys(), ['Temperature-Cases Correlation'])
+mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', ['Single date correlation', 'Correlation over time'])
+delay = st.sidebar.slider('# Days to delay', 0, 30, 0, help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
+if mode == 'Single date correlation':
+    selected_date = st.sidebar.slider('Date', start_date, end_date, value=end_date, step=datetime.timedelta(days=1))
+    dates = [selected_date]
+if mode == 'Correlation over time':
+    show_pvalues = st.sidebar.checkbox('Show P-Values', False, help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
+
+X = [X_choices[k] for k in selected_X_keys]
+
 us_cases = []
+all_corrs = []
+all_ps = []
 for date in dates:
     date_str = date.strftime('%Y-%m-%d')
     delayed_date_str = (date + datetime.timedelta(days=-delay)).strftime('%Y-%m-%d')
     cases = date2cases[date_str]
-    temps = date2temps[delayed_date_str]
     us_cases.append(np.mean(cases))
 
-    corr_temp, p_temp = pearsonr(temps, cases)
-    corr_vacc, p_vacc = pearsonr(vaccines, cases)
-    corrs_temp.append(corr_temp)
-    ps_temp.append(p_temp)
-    corrs_vacc.append(corr_vacc)
-    ps_vacc.append(p_vacc)
-
-fig1, ax1 = plt.subplots()
-line, = ax1.plot(dates, ps_temp, label='p_temp', linestyle='dashed')
-ax1.plot(dates, corrs_temp, label='corrs_temp')
-plt.xticks(rotation=90)
-ax1.legend()
-st.write(fig1)
-
-
-fig2, ax2 = plt.subplots()
-ax2.plot(dates, ps_vacc, label='p_vacc', linestyle='dashed')
-ax2.plot(dates, corrs_vacc, label='corrs_vacc')
-plt.xticks(rotation=90)
-ax2.legend()
-st.write(fig2)
+    for x in X:
+        if x['date'] == 'delayed':
+            x_values = x['var'][delayed_date_str]
+        elif x['date'] == 'current':
+            x_values = x['var'][date_str]
+        elif x['date'] == 'none':
+            x_values = x['var']
+        if len(x_values) != len(cases):
+            print(x_values)
+            print(cases)
+            print(delayed_date_str)
+            print(date2maskmandate[delayed_date_str])
+        corr, p = pearsonr(x_values, cases)
+        x['correlations'].append(corr)
+        x['p_values'].append(p)
+        x['values'].append(x_values)
 
 
-fig3, ax3 = plt.subplots()
-ax3.plot(dates, us_cases, label='us_cases')
-plt.xticks(rotation=90)
-ax3.legend()
-st.write(fig3)
+for x in X:
+    if mode == 'Single date correlation':
+        values = x['values'][0]
+        print(values)
+        fig, ax1 = plt.subplots()
+        ax1.set_title(x['title'])
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        ax1.text(0.05, 0.95, "Pearson Correlation: {:.4f}\nP-Value: {:.6f}".format(x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
+        ax1.scatter(values, cases, color='blue')
+        ax1.set_xlabel(x['x_label'])
+        ax1.set_ylabel('Cases per 100k')
+        print(np.unique(values))
+        print(cases)
+        best_fit_x = list(np.unique(values))
+        if len(best_fit_x) > 1:
+            best_fit_y = np.poly1d(np.polyfit(values, cases, 1))(np.unique(values))
+            ax1.plot(best_fit_x, best_fit_y, color='blue')
+        for val, case, state in zip(values, cases, states):
+            ax1.annotate(state, (val, case), color='blue')
+        st.write(fig)
+    else:
+        correlations = np.array(x['correlations'])
+        fig1, ax1 = plt.subplots()
+        ax1.set_title(x['title'])
+        ax1.set_ylabel('Correlation/P-Value')
+        ax1.plot(dates, correlations, label='Pearson Correlations', color='black')
+        if show_pvalues:
+            line, = ax1.plot(dates, x['p_values'], label='P-Values', linestyle='dashed', color='gray')
+        plt.xticks(rotation=90)
+        ax1.legend()
+        ax1.fill_between(dates, correlations, 0, where=correlations > 0, interpolate=True, color='red', alpha=0.3)
+        ax1.fill_between(dates, correlations, 0, where=correlations < 0, interpolate=True, color='blue', alpha=0.3)
+        st.write(fig1)
+
+if mode != 'Single date correlation':
+    fig3, ax3 = plt.subplots()
+    ax3.set_title('US cases')
+    ax3.set_ylabel('Cases per 100k')
+    ax3.plot(dates, us_cases, label='US Cases per 100k')
+    plt.xticks(rotation=90)
+    ax3.axvspan(datetime.date(2020, 4, 1), datetime.date(2020, 6, 1),
+               label="1st Wave", color="green", alpha=0.1)
+    ax3.axvspan(datetime.date(2020, 6, 1), datetime.date(2020, 9, 1),
+               label="2nd Wave", color="blue", alpha=0.1)
+    ax3.axvspan(datetime.date(2020, 9, 1), datetime.date(2021, 3, 15),
+               label="3rd Wave", color="red", alpha=0.1)
+    ax3.axvspan(datetime.date(2021, 3, 15), datetime.date(2021, 6, 15),
+               label="4th Wave?", color="orange", alpha=0.1)
+    ax3.axvspan(datetime.date(2021, 6, 15), datetime.date(2021, 9, 20),
+               label="5th Wave", color="purple", alpha=0.1)
+    ax3.legend()
+    st.write(fig3)
 
 # st.line_chart(
 #     {
