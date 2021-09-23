@@ -1,0 +1,6 @@
+streamlit
+tqdm
+matplotlib
+python-dotenv
+scipy
+numpy
