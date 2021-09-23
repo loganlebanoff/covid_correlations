@@ -80,7 +80,7 @@ def load_data():
     load_dotenv()
 
     covidactnow_api_key = os.environ.get('COVID_ACTNOW_API_KEY')
-    VisualCrossingWebServices_api_key = os.environ.get('VisualCrossingWebServices_API_KEY')
+    # VisualCrossingWebServices_api_key = os.environ.get('VisualCrossingWebServices_API_KEY')
     result = requests.get(f'https://api.covidactnow.org/v2/states.timeseries.json?apiKey={covidactnow_api_key}')
     data = result.json()
 
