@@ -236,7 +236,7 @@ dates, ealier_dates, date2temps, date2cases, date2maskmandate, date2vaccines, va
 
 
 X_choices = {
-    'Temperature-Cases Correlation': {
+    'Temperature': {
         'title': 'Temperature-Cases Correlation',
         'x_label': 'Temperature (°F)',
         'date': 'delayed',
@@ -246,8 +246,8 @@ X_choices = {
         'values': [],
         'caption': 'Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). I used a 14-day rolling average for daily temperature.',
     },
-    'Total Vaccines Administered-Cases Correlation': {
-        'title': 'Total Vaccines Administered-Cases Correlation',
+    'Vaccinations Completed': {
+        'title': 'Vaccinations Completed-Cases Correlation',
         'x_label': 'Vaccines',
         'date': 'delayed',
         'var': date2vaccines,
@@ -256,17 +256,17 @@ X_choices = {
         'values': [],
         'caption': 'Vaccinations are based on how many people were fully-vaccinated at that point in time.',
     },
-    'Total Vaccines Administered (Numbers Reported Right Now)-Cases Correlation': {
-        'title': 'Total Vaccines Administered (Numbers Reported Right Now)-Cases Correlation',
+    'Vaccinations Completed (Numbers Reported Right Now)': {
+        'title': 'Vaccinations Completed (Numbers Reported Right Now)-Cases Correlation',
         'x_label': 'Vaccines',
         'date': 'none',
         'var': vaccines_today,
         'correlations': [],
         'p_values': [],
         'values': [],
-        'caption': 'Vaccinations are based on how many people are currently fully-vaccinated right now.',
+        'caption': 'Vaccinations are based on how many people are currently fully-vaccinated right now. This is to see if there are possible spurious correlations based on vaccinations. For example, you can see that right now, there is a strong correlation between vaccinations and cases, which is in support of vaccinating. However, the same correlation exists between TODAY\'S vaccination rate and SEPTEMBER OF LAST YEAR\'S cases, which is obviously a spurious correlation since today\'s vaccinations couldn\'t possible have had an effect on last year\'s case numbers. Vaccinations likely do have a large causal effect, but there is clearly another underlying cause leading to the correlation for last year.',
     },
-    'Mask Mandate-Cases Correlation': {
+    'Mask Mandate': {
         'title': 'Mask Mandate-Cases Correlation',
         'x_label': 'Has Mask Mandate (1 if yes, 0 if no)',
         'date': 'delayed',
@@ -278,7 +278,7 @@ X_choices = {
     }
 }
 
-selected_X_keys = st.sidebar.multiselect('Select data:', X_choices.keys(), ['Temperature-Cases Correlation'])
+selected_X_keys = st.sidebar.multiselect('Select data:', X_choices.keys(), ['Temperature'])
 mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', ['Single date correlation', 'Correlation over time'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
 delay = st.sidebar.slider('# Days to delay', 0, 30, 0, help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
 if mode == 'Single date correlation':
