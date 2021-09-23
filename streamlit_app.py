@@ -210,6 +210,26 @@ def load_data():
     #     with open(temp_filename, 'w') as f:
     #         json.dump(rows, f, indent=2)
 
+
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+footer_text = 'Created by Logan Lebanoff. Contact me at loganlebanoff@gmail.com if you have any suggestions or other correlations you would like to see. Source code is here: https://github.com/loganlebanoff/covid_correlations. '
+hide_menu = """
+<style>
+footer:before{
+    content:'%s';
+    display:block;
+    position:relative;
+}
+</style>
+""" % (footer_text)
+st.markdown(hide_menu, unsafe_allow_html=True)
+
 dates, ealier_dates, date2temps, date2cases, date2maskmandate, date2vaccines, vaccines_today, states = load_data()
 
 
@@ -223,6 +243,7 @@ X_choices = {
         'correlations': [],
         'p_values': [],
         'values': [],
+        'caption': 'Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). I used a 14-day rolling average for daily temperature.',
     },
     'Total Vaccines Administered-Cases Correlation': {
         'title': 'Total Vaccines Administered-Cases Correlation',
@@ -232,6 +253,7 @@ X_choices = {
         'correlations': [],
         'p_values': [],
         'values': [],
+        'caption': 'Vaccinations are based on how many people were fully-vaccinated at that point in time.',
     },
     'Total Vaccines Administered (Numbers Reported Right Now)-Cases Correlation': {
         'title': 'Total Vaccines Administered (Numbers Reported Right Now)-Cases Correlation',
@@ -241,6 +263,7 @@ X_choices = {
         'correlations': [],
         'p_values': [],
         'values': [],
+        'caption': 'Vaccinations are based on how many people are currently fully-vaccinated right now.',
     },
     'Mask Mandate-Cases Correlation': {
         'title': 'Mask Mandate-Cases Correlation',
@@ -250,20 +273,9 @@ X_choices = {
         'correlations': [],
         'p_values': [],
         'values': [],
+        'caption': 'Mask Mandate information was taken from Start Date and End Date found in this table: https://en.wikipedia.org/wiki/Face_masks_during_the_COVID-19_pandemic_in_the_United_States#Summary_of_orders_and_recommendations_issued_by_states.'
     }
 }
-
-footer_text = 'Where did I get my data? Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). I used a 14-day rolling average for temperature. COVID cases and vaccinations were taken from COVID Act Now API (https://covidactnow.org/). I used 7-day rolling average for cases, while vaccinations were the total number of people fully-vaccinated at that point in time. Both cases and vaccinations were per 100k population in that state. Mask Mandate information was taken from Start Date and End Date found in this table: https://en.wikipedia.org/wiki/Face_masks_during_the_COVID-19_pandemic_in_the_United_States#Summary_of_orders_and_recommendations_issued_by_states. Source code is here: https://github.com/loganlebanoff/covid_correlations. Created by Logan Lebanoff. Contact me at loganlebanoff@gmail.com if you have any suggestions or other correlations you would like to see.'
-hide_menu = """
-<style>
-footer:before{
-    content:'%s';
-    display:block;
-    position:relative;
-}
-</style>
-""" % (footer_text)
-st.markdown(hide_menu, unsafe_allow_html=True)
 
 selected_X_keys = st.sidebar.multiselect('Select data:', X_choices.keys(), ['Temperature-Cases Correlation'])
 mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', ['Single date correlation', 'Correlation over time'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
@@ -326,6 +338,7 @@ for x in X:
         for val, case, state in zip(values, cases, states):
             ax1.annotate(state, (val, case), color='blue')
         st.write(fig)
+        st.caption(x['caption'])
     else:
         correlations = np.array(x['correlations'])
         fig1, ax1 = plt.subplots()
@@ -339,6 +352,7 @@ for x in X:
         ax1.fill_between(dates, correlations, 0, where=correlations > 0, interpolate=True, color='red', alpha=0.3)
         ax1.fill_between(dates, correlations, 0, where=correlations < 0, interpolate=True, color='blue', alpha=0.3)
         st.write(fig1)
+        st.caption(x['caption'])
 
 if mode != 'Single date correlation':
     fig3, ax3 = plt.subplots()
@@ -358,6 +372,8 @@ if mode != 'Single date correlation':
                label="5th Wave", color="purple", alpha=0.1)
     ax3.legend()
     st.write(fig3)
+
+st.caption('COVID cases and vaccinations are taken from COVID Act Now API (https://covidactnow.org/). I used 7-day rolling average for daily cases, while vaccinations are the total number of people fully-vaccinated. Both cases and vaccinations are per 100k population in that state.')
 
 # st.line_chart(
 #     {
