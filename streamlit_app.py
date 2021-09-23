@@ -75,6 +75,20 @@ st.title('COVID-19 Correlation Explorer')
 st.subheader('Find out what relationships exist between number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates among U.S. states.')
 st.markdown('Change the options in the left sidebar by clicking on the "**>**" arrow.')
 
+def get_row_value(daterow, row, population, daterow_idx, field):
+    today_cases = daterow[field]
+    if today_cases is None:
+        cases = 0
+    else:
+        today_cases = today_cases / population * 100000
+        lastweek_cases = row['actualsTimeseries'][daterow_idx-7][field]
+        if lastweek_cases is None:
+            lastweek_cases = 0
+        else:
+            lastweek_cases = lastweek_cases / population * 100000
+        cases = today_cases - lastweek_cases
+    return cases
+
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def load_data():
 
@@ -93,6 +107,7 @@ def load_data():
     temps = []
     date2temps = defaultdict(list)
     date2cases = defaultdict(list)
+    date2deaths = defaultdict(list)
     date2vaccines = defaultdict(list)
     dates = [start_date + datetime.timedelta(days=x) for x in range((end_date-start_date).days + 1)]
     ealier_dates = [earlier_start_date + datetime.timedelta(days=x) for x in range((end_date-earlier_start_date).days + 1)]
@@ -103,22 +118,13 @@ def load_data():
         population = row['population']
         prev_vaccines = 0
         for daterow_idx, daterow in enumerate(row['actualsTimeseries']):
-            cases = []
             if daterow_idx >= 7:
                 try:
                     date = daterow['date']
-                    today_cases = daterow['cases']
-                    if today_cases is None:
-                        cases = 0
-                    else:
-                        today_cases = today_cases / population * 100000
-                        lastweek_cases = row['actualsTimeseries'][daterow_idx-7]['cases']
-                        if lastweek_cases is None:
-                            lastweek_cases = 0
-                        else:
-                            lastweek_cases = lastweek_cases / population * 100000
-                        cases = today_cases - lastweek_cases
+                    cases = get_row_value(daterow, row, population, daterow_idx, 'cases')
                     date2cases[date].append(cases)
+                    deaths = get_row_value(daterow, row, population, daterow_idx, 'deaths')
+                    date2deaths[date].append(deaths)
                     if 'vaccinationsCompleted' in daterow and daterow['vaccinationsCompleted'] is not None:
                         vaccines = int(daterow['vaccinationsCompleted'])
                         vaccines = vaccines / population * 100000
@@ -181,7 +187,7 @@ def load_data():
                 else:
                     date2maskmandate[date.strftime('%Y-%m-%d')].append(0)
 
-    return dates, ealier_dates, date2temps, date2cases, date2maskmandate, date2vaccines, vaccines_today, states
+    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, states
 
     # temp_filename = 'temps_{}.pkl'.format(temp_date)
     # if os.path.exists(temp_filename):
@@ -231,54 +237,68 @@ footer:before{
 """ % (footer_text)
 st.markdown(hide_menu, unsafe_allow_html=True)
 
-dates, ealier_dates, date2temps, date2cases, date2maskmandate, date2vaccines, vaccines_today, states = load_data()
+dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, states = load_data()
 
 
 
 X_choices = {
     'Temperature': {
-        'title': 'Temperature-Cases Correlation',
+        'title': 'Temperature',
         'x_label': 'Temperature (°F)',
         'date': 'delayed',
         'var': date2temps,
         'correlations': [],
         'p_values': [],
         'values': [],
-        'caption': 'Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). I used a 14-day rolling average for daily temperature.',
+        'caption': 'Positive correlation shows that more cases happen in hot states. Negative correlation shows that more cases happen in cold states. There seems to be an interesting pattern that there is a positive correlation during the summer, and negative during the winter. Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). I used a 14-day rolling average for daily temperature.',
     },
     'Vaccinations Completed': {
-        'title': 'Vaccinations Completed-Cases Correlation',
+        'title': 'Vaccinations Completed',
         'x_label': 'Vaccines',
         'date': 'delayed',
         'var': date2vaccines,
         'correlations': [],
         'p_values': [],
         'values': [],
-        'caption': 'Vaccinations are based on how many people were fully-vaccinated at that point in time.',
+        'caption': 'Vaccinations are based on how many people were fully-vaccinated at that point in time. We would expect to see a negative correlation as more vaccines are administered, which is what we do see.',
     },
     'Vaccinations Completed (Numbers Reported Right Now)': {
-        'title': 'Vaccinations Completed (Numbers Reported Right Now)-Cases Correlation',
+        'title': 'Vaccinations Completed (Numbers Reported Right Now)',
         'x_label': 'Vaccines',
         'date': 'none',
         'var': vaccines_today,
         'correlations': [],
         'p_values': [],
         'values': [],
-        'caption': 'Vaccinations are based on how many people are currently fully-vaccinated right now. This is to see if there are possible spurious correlations based on vaccinations. For example, you can see that right now, there is a strong correlation between vaccinations and cases, which is in support of vaccinating. However, the same correlation exists between TODAY\'S vaccination rate and SEPTEMBER OF LAST YEAR\'S cases, which is obviously a spurious correlation since today\'s vaccinations couldn\'t possible have had an effect on last year\'s case numbers. Vaccinations likely do have a large causal effect, but there is clearly another underlying cause leading to the correlation for last year.',
+        'caption': 'Vaccinations are based on how many people are currently fully-vaccinated right now. This is to see if there are possible spurious correlations based on vaccinations. For example, you can see that right now, there is a strong negative correlation between vaccinations and cases, which is in support of vaccinating. However, the same correlation exists between TODAY\'S vaccination rate and SEPTEMBER OF LAST YEAR\'S cases, which is obviously a spurious correlation since today\'s vaccinations couldn\'t possible have had an effect on last year\'s case numbers. Vaccinations likely do have a large causal effect, but there is clearly another underlying cause leading to the correlation for last year.',
     },
     'Mask Mandate': {
-        'title': 'Mask Mandate-Cases Correlation',
+        'title': 'Mask Mandate',
         'x_label': 'Has Mask Mandate (1 if yes, 0 if no)',
         'date': 'delayed',
         'var': date2maskmandate,
         'correlations': [],
         'p_values': [],
         'values': [],
-        'caption': 'Mask Mandate information was taken from Start Date and End Date found in this table: https://en.wikipedia.org/wiki/Face_masks_during_the_COVID-19_pandemic_in_the_United_States#Summary_of_orders_and_recommendations_issued_by_states.'
+        'caption': 'Mask mandates do not seem to show a strong correlation with case numbers. Mask Mandate information was taken from Start Date and End Date found in this table: https://en.wikipedia.org/wiki/Face_masks_during_the_COVID-19_pandemic_in_the_United_States#Summary_of_orders_and_recommendations_issued_by_states. It is coarse and not very accurate.'
     }
 }
 
-selected_X_keys = st.sidebar.multiselect('Select data:', X_choices.keys(), ['Temperature'])
+Y_choices = {
+    'Cases': {
+        'title': 'Cases',
+        'y_label': 'Daily Cases per 100k',
+        'var': date2cases,
+    },
+    'Deaths': {
+        'title': 'Deaths',
+        'y_label': 'Daily Deaths per 100k',
+        'var': date2deaths,
+    },
+}
+
+selected_X_keys = st.sidebar.multiselect('Select X data:', X_choices.keys(), ['Temperature'])
+selected_Y_key = st.sidebar.selectbox('Select Y data:', Y_choices.keys())
 mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', ['Single date correlation', 'Correlation over time'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
 delay = st.sidebar.slider('# Days to delay', 0, 30, 0, help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
 if mode == 'Single date correlation':
@@ -288,6 +308,7 @@ if mode == 'Correlation over time':
     show_pvalues = st.sidebar.checkbox('Show P-Values', False, help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
 
 X = [X_choices[k] for k in selected_X_keys]
+y = Y_choices[selected_Y_key]
 
 us_cases = []
 all_corrs = []
@@ -295,8 +316,9 @@ all_ps = []
 for date in dates:
     date_str = date.strftime('%Y-%m-%d')
     delayed_date_str = (date + datetime.timedelta(days=-delay)).strftime('%Y-%m-%d')
-    cases = date2cases[date_str]
-    us_cases.append(np.mean(cases))
+    y_values = y['var']
+    y_val = y_values[date_str]
+    us_cases.append(np.mean(y_val))
 
     for x in X:
         if x['date'] == 'delayed':
@@ -305,12 +327,12 @@ for date in dates:
             x_values = x['var'][date_str]
         elif x['date'] == 'none':
             x_values = x['var']
-        if len(x_values) != len(cases):
+        if len(x_values) != len(y_val):
             print(x_values)
-            print(cases)
+            print(y_val)
             print(delayed_date_str)
             print(date2maskmandate[delayed_date_str])
-        corr, p = pearsonr(x_values, cases)
+        corr, p = pearsonr(x_values, y_val)
         if np.isnan(corr):
             corr = 0
             p = 0
@@ -324,26 +346,26 @@ for x in X:
         values = x['values'][0]
         print(values)
         fig, ax1 = plt.subplots()
-        ax1.set_title(x['title'])
+        ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         ax1.text(0.05, 0.95, "Pearson Correlation: {:.4f}\nP-Value: {:.6f}".format(x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
-        ax1.scatter(values, cases, color='blue')
+        ax1.scatter(values, y_val, color='blue')
         ax1.set_xlabel(x['x_label'])
-        ax1.set_ylabel('Daily Cases per 100k')
+        ax1.set_ylabel(y['y_label'])
         print(np.unique(values))
-        print(cases)
+        print(y_val)
         best_fit_x = list(np.unique(values))
         if len(best_fit_x) > 1:
-            best_fit_y = np.poly1d(np.polyfit(values, cases, 1))(np.unique(values))
+            best_fit_y = np.poly1d(np.polyfit(values, y_val, 1))(np.unique(values))
             ax1.plot(best_fit_x, best_fit_y, color='blue')
-        for val, case, state in zip(values, cases, states):
+        for val, case, state in zip(values, y_val, states):
             ax1.annotate(state, (val, case), color='blue')
         st.write(fig)
         st.caption(x['caption'])
     else:
         correlations = np.array(x['correlations'])
         fig1, ax1 = plt.subplots()
-        ax1.set_title(x['title'])
+        ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         ax1.set_ylabel('Correlation/P-Value')
         ax1.plot(dates, correlations, label='Pearson Correlations', color='black')
         if show_pvalues:
@@ -357,9 +379,9 @@ for x in X:
 
 if mode != 'Single date correlation':
     fig3, ax3 = plt.subplots()
-    ax3.set_title('US cases')
-    ax3.set_ylabel('Daily Cases per 100k')
-    ax3.plot(dates, us_cases, label='US Cases per 100k')
+    ax3.set_title(f'US {y["title"]}')
+    ax3.set_ylabel(y["y_label"])
+    ax3.plot(dates, us_cases, label=f'US {y["title"]}')
     plt.xticks(rotation=90)
     ax3.axvspan(datetime.date(2020, 4, 1), datetime.date(2020, 6, 1),
                label="1st Wave", color="green", alpha=0.1)
@@ -374,43 +396,7 @@ if mode != 'Single date correlation':
     ax3.legend()
     st.write(fig3)
 
-st.caption('COVID cases and vaccinations are taken from COVID Act Now API (https://covidactnow.org/). I used 7-day rolling average for daily cases, while vaccinations are the total number of people fully-vaccinated. Both cases and vaccinations are per 100k population in that state.')
+st.caption('COVID cases, deaths, and vaccinations are taken from COVID Act Now API (https://covidactnow.org/). I used 7-day rolling average for daily cases and deaths, while vaccinations are the total number of people fully-vaccinated. Cases, deaths, and vaccinations are per 100k population in that state.')
 
-# st.line_chart(
-#     {
-#         'Temperature-cases correlations': corrs_temp,
-#         'Temperature-cases p-values': ps_temp,
-#         # 'US Cases': us_cases,
-#     }
-# )
-#
-# st.line_chart(
-#     {
-#         'Vaccination-cases correlations': corrs_vacc,
-#         'Vaccination-cases p-values': ps_vacc,
-#         # 'US Cases': us_cases,
-#     }
-# )
-
-# fig, ax1 = plt.subplots()
-# ax1.plot(dates, corrs_temp, label='corrs_temp')
-# ax1.plot(dates, ps_temp, label='p_temp')
-# ax1.plot(dates, corrs_vacc, label='corrs_vacc')
-# ax1.plot(dates, ps_vacc, label='p_vacc')
-# ax1.legend()
-# plt.show()
-
-# fig, ax1 = plt.subplots()
-# # plt.bar(states, vaccines)
-# ax1.scatter(temps, cases, color='blue')
-# ax1.plot(np.unique(temps), np.poly1d(np.polyfit(temps, cases, 1))(np.unique(temps)), color='blue')
-# for temp, case, state in zip(temps, cases, states):
-#     ax1.annotate(state, (temp, case), color='blue')
-# ax2 = ax1.twiny()
-# ax2.scatter(vaccines, cases, color='red')
-# ax2.plot(np.unique(vaccines), np.poly1d(np.polyfit(vaccines, cases, 1))(np.unique(vaccines)), color='red')
-# for vaccines, case, state in zip(vaccines, cases, states):
-#     ax2.annotate(state, (vaccines, case), color='red')
-# plt.show()
 
 a=0
