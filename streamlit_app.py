@@ -459,18 +459,18 @@ example_options = {
 selected_example_key = st.selectbox('Examples', example_options)
 selected_example = example_options[selected_example_key]
 
-selected_X_keys = st.sidebar.multiselect('Select X data:', X_choices.keys(), default=selected_example['X'])
-selected_Y_key = st.sidebar.selectbox('Select Y data:', Y_choices.keys(), index=selected_example['Y'])
+selected_X_keys = st.sidebar.multiselect('Select X data:', X_choices.keys(), default=selected_example['X'], key='x' + selected_example_key)
+selected_Y_key = st.sidebar.selectbox('Select Y data:', Y_choices.keys(), index=selected_example['Y'], key='y' + selected_example_key)
 mode_choices = ['Single date correlation', 'Correlation over time']
-mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', mode_choices, index=selected_example['mode'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
-delay = st.sidebar.slider('# Days to delay', 0, 30, selected_example['delay'], help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
+mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', mode_choices, index=selected_example['mode'], key='mode' + selected_example_key, help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
+delay = st.sidebar.slider('# Days to delay', 0, 30, selected_example['delay'], key='delay' + selected_example_key, help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
 if mode == 'Single date correlation':
-    selected_date = st.sidebar.slider('Date', start_date, end_date, value=selected_example['date'], step=datetime.timedelta(days=1))
+    selected_date = st.sidebar.slider('Date', start_date, end_date, value=selected_example['date'], step=datetime.timedelta(days=1), key='date' + selected_example_key)
     dates = [selected_date]
 else:
     selected_date = end_date
 if mode == 'Correlation over time':
-    show_pvalues = st.sidebar.checkbox('Show P-Values', selected_example['p'], help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
+    show_pvalues = st.sidebar.checkbox('Show P-Values', selected_example['p'], key='p' + selected_example_key, help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
 else:
     show_pvalues = False
 
