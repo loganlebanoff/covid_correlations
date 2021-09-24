@@ -180,7 +180,6 @@ def load_data():
                 end = dateutil.parser.parse(end).date()
             state2startmaskmandate[cur_state] = start
             state2endmaskmandate[cur_state] = end
-    print(len(list(state2startmaskmandate.keys())))
     date2maskmandate = defaultdict(list)
     for state, start in state2startmaskmandate.items():
         end = state2endmaskmandate[state]
@@ -354,24 +353,107 @@ example_options = {
         'Y': 0,
         'mode': 0,
         'date': end_date,
+        'delay': 0,
+        'p': False,
     },
     'Cold States': {
-        'annotation_text' : '''The line is pointing down, which is a negative correlation. In this case, that means that colder states are having more COVID cases than warmer states.''',
+        'annotations': [
+            {
+                'annotation_text' : '''The line is pointing down, which is a negative correlation. In this case, that means that colder states are having more COVID cases than warmer states.''',
+                'xy': (85, 300),
+                'textxy': (95, 500),
+            }
+        ],
         'X' : ['Temperature'],
         'Y': 0,
         'mode': 0,
         'date': end_date,
-        'xy': (85, 300),
-        'textxy': (95, 500),
+        'delay': 0,
+        'p': False,
     },
     'Hot States': {
-        'annotation_text' : '''If we change the date to just 2 months in the past to July, then we see a positive correlation (hotter states are having more COVID cases than colder states.''',
+        'annotations': [
+            {
+                'annotation_text' : '''If we change the date to July 20, just 2 months in the past, then we see a positive correlation (hotter states are having more COVID cases than colder states.''',
+                'xy': (90, 120),
+                'textxy': (95, 230),
+            }
+        ],
         'X' : ['Temperature'],
         'Y': 0,
         'mode': 0,
         'date': datetime.date(2021, 7, 20),
-        'xy': (90, 120),
-        'textxy': (95, 230),
+        'delay': 0,
+        'p': False,
+    },
+    'Temperature Correlation Over Time': {
+        'annotations': [
+            {
+                'annotation_text' : '''''',
+                'xy': (end_date, -0.2),
+                'textxy': (end_date, -0.6),
+            },
+            {
+                'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomenon at the same time, and we can see how the correlation changes over time.',
+                'xy': (datetime.date(2021, 7, 17), 0.28),
+                'textxy': (datetime.date(2021, 1, 1), 0.4),
+            },
+            {
+                'annotation_text' : 'Interestingly, it seems to follow the pattern that hot states get more cases in the summer (so people gather inside in those states), and cold states get more cases in the winter (again, so people gather inside).',
+                'xy': (datetime.date(2020, 10, 15), -0.5),
+                'textxy': (datetime.date(2020, 4, 1), -0.5),
+            },
+            {
+                'annotation_text' : '',
+                'xy': (datetime.date(2020, 7, 15), 0),
+                'textxy': (datetime.date(2020, 7, 1), -0.275),
+            },
+        ],
+        'X' : ['Temperature'],
+        'Y': 0,
+        'mode': 1,
+        'date': end_date,
+        'xy': (end_date, -0.2),
+        'textxy': (end_date, -0.6),
+        'delay': 0,
+        'p': False,
+    },
+    'Vaccinations': {
+        'annotations': [
+            {
+                'annotation_text': 'States with more fully-vaccinated people have fewer cases, with a very strong correlation (-0.646).',
+                'xy': (67500, 275),
+                'textxy': (60000, 600),
+            }
+        ],
+        'X' : ['Vaccinations Completed'],
+        'Y': 0,
+        'mode': 0,
+        'date': end_date,
+        'delay': 0,
+        'p': False,
+    },
+    'Spurious Vaccinations Correlation': {
+        'annotations': [
+            {
+                'annotation_text': '''This time we're looking at how states' vaccination rate TODAY correlates with their case load over time. Obviously, since the vaccine was only beginning to be rolled out at the end of 2020, then there shouldn't be much correlation during the span of 2020. However, we do see a huge correlation in Sep 2020 at a similar magnitude as the one we see for Sep 2021. Clearly the correlation in 2020 is spurious and must be due to some third causal factor, maybe the state's political leanings, temperature, etc.''',
+                'xy': (datetime.date(2021, 9, 1), -0.7),
+                'textxy': (datetime.date(2021, 3, 15), -0.55),
+                'fontsize': 8,
+                'alpha': 0.9,
+            },
+            {
+                'annotation_text': '',
+                'xy': (datetime.date(2020, 9, 15), -0.65),
+                'textxy': (datetime.date(2020, 12, 1), -0.7),
+            },
+        ],
+        'X' : ['Vaccinations Completed (Numbers Reported Right Now)'],
+        'Y': 0,
+        'mode': 1,
+        'date': end_date,
+        'delay': 0,
+        'p': False,
     },
 }
 selected_example_key = st.selectbox('Examples', example_options)
@@ -379,13 +461,32 @@ selected_example = example_options[selected_example_key]
 
 selected_X_keys = st.sidebar.multiselect('Select X data:', X_choices.keys(), default=selected_example['X'])
 selected_Y_key = st.sidebar.selectbox('Select Y data:', Y_choices.keys(), index=selected_example['Y'])
-mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', ['Single date correlation', 'Correlation over time'], index=selected_example['mode'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
-delay = st.sidebar.slider('# Days to delay', 0, 30, 0, help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
+mode_choices = ['Single date correlation', 'Correlation over time']
+mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', mode_choices, index=selected_example['mode'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
+delay = st.sidebar.slider('# Days to delay', 0, 30, selected_example['delay'], help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
 if mode == 'Single date correlation':
     selected_date = st.sidebar.slider('Date', start_date, end_date, value=selected_example['date'], step=datetime.timedelta(days=1))
     dates = [selected_date]
+else:
+    selected_date = end_date
 if mode == 'Correlation over time':
-    show_pvalues = st.sidebar.checkbox('Show P-Values', False, help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
+    show_pvalues = st.sidebar.checkbox('Show P-Values', selected_example['p'], help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
+else:
+    show_pvalues = False
+
+is_using_selected_example = selected_example_key != ''
+if selected_X_keys != selected_example['X']:
+    is_using_selected_example = False
+if selected_Y_key != list(Y_choices.keys())[selected_example['Y']]:
+    is_using_selected_example = False
+if mode != mode_choices[selected_example['mode']]:
+    is_using_selected_example = False
+if delay != selected_example['delay']:
+    is_using_selected_example = False
+if selected_date != selected_example['date']:
+    is_using_selected_example = False
+if show_pvalues != selected_example['p']:
+    is_using_selected_example = False
 
 X = [X_choices[k] for k in selected_X_keys]
 y = Y_choices[selected_Y_key]
@@ -424,7 +525,6 @@ for date in dates:
 for x in X:
     if mode == 'Single date correlation':
         values = x['values'][0]
-        print(values)
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
@@ -432,25 +532,15 @@ for x in X:
         ax1.scatter(values, y_val, color='blue')
         ax1.set_xlabel(x['x_label'])
         ax1.set_ylabel(y['y_label'])
-        print(np.unique(values))
-        print(y_val)
         best_fit_x = list(np.unique(values))
         if len(best_fit_x) > 1:
             best_fit_y = np.poly1d(np.polyfit(values, y_val, 1))(np.unique(values))
             ax1.plot(best_fit_x, best_fit_y, color='blue')
         for val, case, state in zip(values, y_val, states):
             ax1.annotate(state, (val, case), color='blue')
-        if selected_example_key != '':
-            annotation_text = '\n'.join(l for line in selected_example['annotation_text'].splitlines() for l in textwrap.wrap(line, width=30))
-            ab = AnnotationBbox(TextArea(annotation_text, textprops=dict(ha='center')), selected_example['xy'], selected_example['textxy'],
-                         arrowprops=dict(arrowstyle="fancy", connectionstyle='angle3', facecolor='#b0d1e8', edgecolor='black'), bboxprops =
-                                dict(facecolor='#b0d1e8',boxstyle='round',color='black'))
-            ax1.add_artist(ab)
-        st.write(fig)
-        st.caption(x['caption'])
     else:
         correlations = np.array(x['correlations'])
-        fig1, ax1 = plt.subplots()
+        fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         ax1.set_ylabel('Correlation/P-Value')
         ax1.plot(dates, correlations, label='Pearson Correlations', color='black')
@@ -460,8 +550,18 @@ for x in X:
         ax1.legend()
         ax1.fill_between(dates, correlations, 0, where=correlations > 0, interpolate=True, color='red', alpha=0.3)
         ax1.fill_between(dates, correlations, 0, where=correlations < 0, interpolate=True, color='blue', alpha=0.3)
-        st.write(fig1)
-        st.caption(x['caption'])
+    if is_using_selected_example:
+        for annotation in selected_example['annotations']:
+            fontsize = annotation['fontsize'] if 'fontsize' in annotation else None
+            alpha = annotation['alpha'] if 'alpha' in annotation else None
+            is_bbox_visible = annotation['annotation_text'] != ''
+            annotation_text = '\n'.join(l for line in annotation['annotation_text'].splitlines() for l in textwrap.wrap(line, width=30))
+            ab = AnnotationBbox(TextArea(annotation_text, textprops=dict(ha='center', fontsize=fontsize)), annotation['xy'], annotation['textxy'],
+                         arrowprops=dict(arrowstyle="fancy", connectionstyle='angle3', facecolor='#7af6ff', edgecolor='black'), bboxprops =
+                                dict(facecolor='#7af6ff',boxstyle='round',color='black',visible=is_bbox_visible,alpha=alpha))
+            ax1.add_artist(ab)
+    st.write(fig)
+    st.caption(x['caption'])
 
 if mode != 'Single date correlation':
     fig3, ax3 = plt.subplots()
