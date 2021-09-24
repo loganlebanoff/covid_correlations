@@ -373,11 +373,13 @@ example_options = {
                 'xy': (datetime.date(2021, 7, 17), 0.28),
                 'textxy': (datetime.date(2021, 1, 1), 0.4),
                 'color': '#ffdd80',
+                'alpha': 0.9
             },
             {
                 'annotation_text' : 'Interestingly, it seems to follow the pattern that hot states get more cases in the summer (so people gather inside in those states), and cold states get more cases in the winter (again, so people gather inside).',
                 'xy': (datetime.date(2020, 10, 15), -0.5),
-                'textxy': (datetime.date(2020, 4, 1), -0.5),
+                'textxy': (datetime.date(2020, 4, 1), -0.6),
+                'alpha': 0.9
             },
             {
                 'annotation_text' : '',
@@ -563,11 +565,12 @@ for x_idx, x in enumerate(X):
         ax1.fill_between(dates, correlations, 0, where=correlations < 0, interpolate=True, color='blue', alpha=0.3)
     if is_using_selected_example and x_idx == 0:
         for annotation in selected_example['annotations']:
-            fontsize = annotation['fontsize'] if 'fontsize' in annotation else None
+            fontsize = annotation['fontsize'] if 'fontsize' in annotation else 12
+            width = fontsize * 2
             alpha = annotation['alpha'] if 'alpha' in annotation else None
             color = annotation['color'] if 'color' in annotation else '#7af6ff'
             is_bbox_visible = annotation['annotation_text'] != ''
-            annotation_text = '\n'.join(l for line in annotation['annotation_text'].splitlines() for l in textwrap.wrap(line, width=30))
+            annotation_text = '\n'.join(l for line in annotation['annotation_text'].splitlines() for l in textwrap.wrap(line, width=25 + (12-fontsize)))
             ab = AnnotationBbox(TextArea(annotation_text, textprops=dict(ha='center', fontsize=fontsize)), annotation['xy'], annotation['textxy'],
                          arrowprops=dict(arrowstyle="fancy", connectionstyle='angle3', facecolor=color, edgecolor='black'), bboxprops =
                                 dict(facecolor=color,boxstyle='round',color='black',visible=is_bbox_visible,alpha=alpha))
