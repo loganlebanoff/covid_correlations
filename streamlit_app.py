@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 import datetime
 import dateutil.parser
 import streamlit as st
+from matplotlib.offsetbox import (TextArea, DrawingArea, OffsetImage,
+                                  AnnotationBbox)
+import textwrap
 
 us_state_to_abbrev = {
     "Alabama": "AL",
@@ -73,7 +76,7 @@ end_date_str = end_date.strftime('%Y-%m-%d')
 
 st.title('COVID-19 Correlation Explorer')
 st.subheader('Find out what relationships exist between number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates among U.S. states.')
-st.markdown('Change the options in the left sidebar by clicking on the "**>**" arrow.')
+st.markdown('Look at examples below or change the options in the left sidebar by clicking on the "**>**" arrow.')
 
 def get_row_value(daterow, row, population, daterow_idx, field):
     today_cases = daterow[field]
@@ -154,40 +157,68 @@ def load_data():
             ave_temp = np.mean(past_7_days)
             date2temps[date].append(ave_temp)
 
-        with open('data/mask_mandate.tsv') as f:
-            lines = f.read().splitlines()
-        state2startmaskmandate = {}
-        state2endmaskmandate = {}
-        cur_state = None
-        for line in lines:
-            if '\t' in line:
-                items = line.strip().split('\t')
-                cur_state = items[0]
-                start = items[1]
-                end = items[2]
-                if start == 'N/A':
-                    start = datetime.date(1970, 1, 1)
-                else:
-                    start = dateutil.parser.parse(start).date()
-                if end == 'N/A':
-                    end = datetime.date(1970, 1, 1)
-                elif end == 'Ongoing':
-                    end = datetime.date.today()
-                else:
-                    end = dateutil.parser.parse(end).date()
-                state2startmaskmandate[cur_state] = start
-                state2endmaskmandate[cur_state] = end
-        print(len(list(state2startmaskmandate.keys())))
-        date2maskmandate = defaultdict(list)
-        for state, start in state2startmaskmandate.items():
-            end = state2endmaskmandate[state]
-            for date in ealier_dates:
-                if date >= start and date <= end:
-                    date2maskmandate[date.strftime('%Y-%m-%d')].append(1)
-                else:
-                    date2maskmandate[date.strftime('%Y-%m-%d')].append(0)
+    with open('data/mask_mandate.tsv') as f:
+        lines = f.read().splitlines()
+    state2startmaskmandate = {}
+    state2endmaskmandate = {}
+    cur_state = None
+    for line in lines:
+        if '\t' in line:
+            items = line.strip().split('\t')
+            cur_state = items[0]
+            start = items[1]
+            end = items[2]
+            if start == 'N/A':
+                start = datetime.date(1970, 1, 1)
+            else:
+                start = dateutil.parser.parse(start).date()
+            if end == 'N/A':
+                end = datetime.date(1970, 1, 1)
+            elif end == 'Ongoing':
+                end = datetime.date.today()
+            else:
+                end = dateutil.parser.parse(end).date()
+            state2startmaskmandate[cur_state] = start
+            state2endmaskmandate[cur_state] = end
+    print(len(list(state2startmaskmandate.keys())))
+    date2maskmandate = defaultdict(list)
+    for state, start in state2startmaskmandate.items():
+        end = state2endmaskmandate[state]
+        for date in ealier_dates:
+            if date >= start and date <= end:
+                date2maskmandate[date.strftime('%Y-%m-%d')].append(1)
+            else:
+                date2maskmandate[date.strftime('%Y-%m-%d')].append(0)
 
-    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, states
+    with open('data/political_party.tsv') as f:
+        lines = f.read().splitlines()
+    political_tuples = []
+    for line in lines:
+        items = line.strip().split('\t')
+        state = us_state_to_abbrev[items[0]]
+        dem_leaning = int(items[3])
+        political_tuples.append((state, dem_leaning))
+    politicals = []
+    for state, dem_leaning in sorted(political_tuples):
+        politicals.append(dem_leaning)
+
+    with open('data/age.tsv') as f:
+        lines = f.read().splitlines()
+    age_tuples = []
+    for line in lines:
+        items = line.strip().split('\t')
+        if items[1].strip() not in us_state_to_abbrev:
+            continue
+        state = us_state_to_abbrev[items[1].strip()]
+        age = float(items[2])
+        age_tuples.append((state, age))
+    ages = []
+    for state, age in sorted(age_tuples):
+        ages.append(age)
+
+
+
+    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states
 
     # temp_filename = 'temps_{}.pkl'.format(temp_date)
     # if os.path.exists(temp_filename):
@@ -237,24 +268,24 @@ footer:before{
 """ % (footer_text)
 st.markdown(hide_menu, unsafe_allow_html=True)
 
-dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, states = load_data()
+dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states = load_data()
 
 
 
 X_choices = {
     'Temperature': {
         'title': 'Temperature',
-        'x_label': 'Temperature (°F)',
+        'x_label': 'State Temperature (°F)',
         'date': 'delayed',
         'var': date2temps,
         'correlations': [],
         'p_values': [],
         'values': [],
-        'caption': 'Positive correlation shows that more cases happen in hot states. Negative correlation shows that more cases happen in cold states. There seems to be an interesting pattern that there is a positive correlation during the summer, and negative during the winter. Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). I used a 14-day rolling average for daily temperature.',
+        'caption': 'Positive correlation shows that more cases happen in hot states. Negative correlation shows that more cases happen in cold states. There seems to be an interesting pattern that there is a positive correlation during the summer (hotter states have more cases), and negative during the winter (colder states have more cases). Temperature information was taken from Visual Crossing Weather API (https://www.visualcrossing.com/weather-api). I used a 14-day rolling average for daily temperature.',
     },
     'Vaccinations Completed': {
         'title': 'Vaccinations Completed',
-        'x_label': 'Vaccines',
+        'x_label': 'State Vaccines Completed',
         'date': 'delayed',
         'var': date2vaccines,
         'correlations': [],
@@ -264,7 +295,7 @@ X_choices = {
     },
     'Vaccinations Completed (Numbers Reported Right Now)': {
         'title': 'Vaccinations Completed (Numbers Reported Right Now)',
-        'x_label': 'Vaccines',
+        'x_label': 'State Vaccines Completed',
         'date': 'none',
         'var': vaccines_today,
         'correlations': [],
@@ -274,13 +305,33 @@ X_choices = {
     },
     'Mask Mandate': {
         'title': 'Mask Mandate',
-        'x_label': 'Has Mask Mandate (1 if yes, 0 if no)',
+        'x_label': 'State Has Mask Mandate (1 if yes, 0 if no)',
         'date': 'delayed',
         'var': date2maskmandate,
         'correlations': [],
         'p_values': [],
         'values': [],
         'caption': 'Mask mandates do not seem to show a strong correlation with case numbers. Mask Mandate information was taken from Start Date and End Date found in this table: https://en.wikipedia.org/wiki/Face_masks_during_the_COVID-19_pandemic_in_the_United_States#Summary_of_orders_and_recommendations_issued_by_states. It is coarse and not very accurate.'
+    },
+    'Partisanship': {
+        'title': 'State Partisanship by Democratic Advantage',
+        'x_label': 'Democratic Advantage (%)',
+        'date': 'none',
+        'var': politicals,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+        'caption': 'Partisanship information is based on how many percentage points that the Democratic party has over the Republican party, and was taken from a Gallup 2017 poll: https://news.gallup.com/poll/226643/2017-party-affiliation-state.aspx.'
+    },
+    'Median Age': {
+        'title': 'State Median Age',
+        'x_label': 'Median Age (years)',
+        'date': 'none',
+        'var': ages,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+        'caption': 'Age information taken from https://en.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_median_age'
     }
 }
 
@@ -297,12 +348,41 @@ Y_choices = {
     },
 }
 
-selected_X_keys = st.sidebar.multiselect('Select X data:', X_choices.keys(), ['Temperature'])
-selected_Y_key = st.sidebar.selectbox('Select Y data:', Y_choices.keys())
-mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', ['Single date correlation', 'Correlation over time'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
+example_options = {
+    '': {
+        'X': ['Temperature'],
+        'Y': 0,
+        'mode': 0,
+        'date': end_date,
+    },
+    'Cold States': {
+        'annotation_text' : '''The line is pointing down, which is a negative correlation. In this case, that means that colder states are having more COVID cases than warmer states.''',
+        'X' : ['Temperature'],
+        'Y': 0,
+        'mode': 0,
+        'date': end_date,
+        'xy': (85, 300),
+        'textxy': (95, 500),
+    },
+    'Hot States': {
+        'annotation_text' : '''If we change the date to just 2 months in the past to July, then we see a positive correlation (hotter states are having more COVID cases than colder states.''',
+        'X' : ['Temperature'],
+        'Y': 0,
+        'mode': 0,
+        'date': datetime.date(2021, 7, 20),
+        'xy': (90, 120),
+        'textxy': (95, 230),
+    },
+}
+selected_example_key = st.selectbox('Examples', example_options)
+selected_example = example_options[selected_example_key]
+
+selected_X_keys = st.sidebar.multiselect('Select X data:', X_choices.keys(), default=selected_example['X'])
+selected_Y_key = st.sidebar.selectbox('Select Y data:', Y_choices.keys(), index=selected_example['Y'])
+mode = st.sidebar.selectbox('Correlation at single date or Correlation over time', ['Single date correlation', 'Correlation over time'], index=selected_example['mode'], help='See correlation at a specific date, or see how correlation has changed over time during the entire pandemic.')
 delay = st.sidebar.slider('# Days to delay', 0, 30, 0, help='For example, if you think there may be a 14-day delay between the start of a mask mandate and a corresponding reduction in COVID cases, then set this to 14')
 if mode == 'Single date correlation':
-    selected_date = st.sidebar.slider('Date', start_date, end_date, value=end_date, step=datetime.timedelta(days=1))
+    selected_date = st.sidebar.slider('Date', start_date, end_date, value=selected_example['date'], step=datetime.timedelta(days=1))
     dates = [selected_date]
 if mode == 'Correlation over time':
     show_pvalues = st.sidebar.checkbox('Show P-Values', False, help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
@@ -360,6 +440,12 @@ for x in X:
             ax1.plot(best_fit_x, best_fit_y, color='blue')
         for val, case, state in zip(values, y_val, states):
             ax1.annotate(state, (val, case), color='blue')
+        if selected_example_key != '':
+            annotation_text = '\n'.join(l for line in selected_example['annotation_text'].splitlines() for l in textwrap.wrap(line, width=30))
+            ab = AnnotationBbox(TextArea(annotation_text, textprops=dict(ha='center')), selected_example['xy'], selected_example['textxy'],
+                         arrowprops=dict(arrowstyle="fancy", connectionstyle='angle3', facecolor='#b0d1e8', edgecolor='black'), bboxprops =
+                                dict(facecolor='#b0d1e8',boxstyle='round',color='black'))
+            ax1.add_artist(ab)
         st.write(fig)
         st.caption(x['caption'])
     else:
