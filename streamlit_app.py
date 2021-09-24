@@ -451,6 +451,21 @@ example_options = {
         'delay': 0,
         'p': False,
     },
+    'Mask Mandates': {
+        'annotations': [
+            {
+                'annotation_text': '''Relatively weak correlation between state mask mandates and cases.''',
+                'xy': (datetime.date(2020, 11, 2), 0.31),
+                'textxy': (datetime.date(2020, 11, 1), 0.3),
+            },
+        ],
+        'X' : ['Mask Mandate'],
+        'Y': 0,
+        'mode': 1,
+        'date': end_date,
+        'delay': 0,
+        'p': False,
+    },
 }
 if 'selected_example_idx' not in st.session_state:
     st.session_state['selected_example_idx'] = 0
