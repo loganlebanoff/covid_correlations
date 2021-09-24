@@ -592,20 +592,21 @@ if mode != 'Single date correlation':
 st.caption('COVID cases, deaths, and vaccinations are taken from COVID Act Now API (https://covidactnow.org/). I used 7-day rolling average for daily cases and deaths, while vaccinations are the total number of people fully-vaccinated. Cases, deaths, and vaccinations are per 100k population in that state.')
 
 
+st.markdown('<hr>', unsafe_allow_html=True)
+
+st.caption('Created by Logan Lebanoff. Contact me at loganlebanoff@gmail.com if you have any suggestions or other correlations you would like to see. Source code: https://github.com/loganlebanoff/covid_correlations.')
+# hide_menu = """<style>
+# footer:before{
+#     content:'%s';
+#     display:block;
+#     position:relative;
+# }
+# </style>""" % (footer_text)
+# st.markdown(hide_menu, unsafe_allow_html=True)
 
 hide_streamlit_style = """<style>
             #MainMenu {visibility: hidden;}
             </style>"""
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-footer_text = 'Created by Logan Lebanoff. Contact me at loganlebanoff@gmail.com if you have any suggestions or other correlations you would like to see. Source code is here: https://github.com/loganlebanoff/covid_correlations. '
-hide_menu = """<style>
-footer:before{
-    content:'%s';
-    display:block;
-    position:relative;
-}
-</style>""" % (footer_text)
-st.markdown(hide_menu, unsafe_allow_html=True)
 
 a=0
