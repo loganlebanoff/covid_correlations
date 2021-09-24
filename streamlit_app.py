@@ -351,6 +351,7 @@ example_options = {
                 'annotation_text' : '''If we change the date to July 20, just 2 months in the past, then we see a positive correlation (states that are hot happen to have more COVID cases than colder states.''',
                 'xy': (90, 120),
                 'textxy': (95, 230),
+                'color': '#ffdd80'
             }
         ],
         'X' : ['Temperature'],
@@ -371,6 +372,7 @@ example_options = {
                 'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomena at the same time, and we can see how the correlation changes over time.',
                 'xy': (datetime.date(2021, 7, 17), 0.28),
                 'textxy': (datetime.date(2021, 1, 1), 0.4),
+                'color': '#ffdd80',
             },
             {
                 'annotation_text' : 'Interestingly, it seems to follow the pattern that hot states get more cases in the summer (so people gather inside in those states), and cold states get more cases in the winter (again, so people gather inside).',
@@ -381,6 +383,7 @@ example_options = {
                 'annotation_text' : '',
                 'xy': (datetime.date(2020, 7, 15), 0),
                 'textxy': (datetime.date(2020, 7, 1), -0.275),
+                'color': '#ffdd80'
             },
         ],
         'X' : ['Temperature'],
@@ -561,11 +564,12 @@ for x_idx, x in enumerate(X):
         for annotation in selected_example['annotations']:
             fontsize = annotation['fontsize'] if 'fontsize' in annotation else None
             alpha = annotation['alpha'] if 'alpha' in annotation else None
+            color = annotation['color'] if 'color' in annotation else '#7af6ff'
             is_bbox_visible = annotation['annotation_text'] != ''
             annotation_text = '\n'.join(l for line in annotation['annotation_text'].splitlines() for l in textwrap.wrap(line, width=30))
             ab = AnnotationBbox(TextArea(annotation_text, textprops=dict(ha='center', fontsize=fontsize)), annotation['xy'], annotation['textxy'],
-                         arrowprops=dict(arrowstyle="fancy", connectionstyle='angle3', facecolor='#7af6ff', edgecolor='black'), bboxprops =
-                                dict(facecolor='#7af6ff',boxstyle='round',color='black',visible=is_bbox_visible,alpha=alpha))
+                         arrowprops=dict(arrowstyle="fancy", connectionstyle='angle3', facecolor=color, edgecolor='black'), bboxprops =
+                                dict(facecolor=color,boxstyle='round',color='black',visible=is_bbox_visible,alpha=alpha))
             ax1.add_artist(ab)
     st.write(fig)
     st.caption(x['caption'])
