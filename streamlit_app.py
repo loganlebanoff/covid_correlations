@@ -371,7 +371,7 @@ example_options = {
             {
                 'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomena at the same time, and we can see how the correlation changes over time.',
                 'xy': (datetime.date(2021, 7, 17), 0.28),
-                'textxy': (datetime.date(2021, 1, 1), 0.4),
+                'textxy': (datetime.date(2021, 1, 1), 0.35),
                 'color': '#ffdd80',
                 'alpha': 0.9
             },
