@@ -74,6 +74,7 @@ end_date = datetime.date(2021, 9, 20)
 start_date_str = start_date.strftime('%Y-%m-%d')
 end_date_str = end_date.strftime('%Y-%m-%d')
 
+
 st.title('COVID-19 Correlation Explorer')
 st.subheader('Find out what relationships exist between number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates among U.S. states.')
 st.markdown('Look at examples below or change the options in the left sidebar by clicking on the "**>**" arrow.')
@@ -248,25 +249,6 @@ def load_data():
     #         json.dump(rows, f, indent=2)
 
 
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-footer_text = 'Created by Logan Lebanoff. Contact me at loganlebanoff@gmail.com if you have any suggestions or other correlations you would like to see. Source code is here: https://github.com/loganlebanoff/covid_correlations. '
-hide_menu = """
-<style>
-footer:before{
-    content:'%s';
-    display:block;
-    position:relative;
-}
-</style>
-""" % (footer_text)
-st.markdown(hide_menu, unsafe_allow_html=True)
-
 dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states = load_data()
 
 
@@ -312,15 +294,15 @@ X_choices = {
         'values': [],
         'caption': 'Mask mandates do not seem to show a strong correlation with case numbers. Mask Mandate information was taken from Start Date and End Date found in this table: https://en.wikipedia.org/wiki/Face_masks_during_the_COVID-19_pandemic_in_the_United_States#Summary_of_orders_and_recommendations_issued_by_states. It is coarse and not very accurate.'
     },
-    'Partisanship': {
-        'title': 'State Partisanship by Democratic Advantage',
+    'Political Leaning': {
+        'title': 'State Political Leaning by Democratic Advantage',
         'x_label': 'Democratic Advantage (%)',
         'date': 'none',
         'var': politicals,
         'correlations': [],
         'p_values': [],
         'values': [],
-        'caption': 'Partisanship information is based on how many percentage points that the Democratic party has over the Republican party, and was taken from a Gallup 2017 poll: https://news.gallup.com/poll/226643/2017-party-affiliation-state.aspx.'
+        'caption': 'Political Leaning information is based on how many percentage points that the Democratic party has over the Republican party, and was taken from a Gallup 2017 poll: https://news.gallup.com/poll/226643/2017-party-affiliation-state.aspx.'
     },
     'Median Age': {
         'title': 'State Median Age',
@@ -348,7 +330,7 @@ Y_choices = {
 }
 
 example_options = {
-    '': {
+    'Select an example here!': {
         'X': ['Temperature'],
         'Y': 0,
         'mode': 0,
@@ -359,7 +341,7 @@ example_options = {
     'Cold States': {
         'annotations': [
             {
-                'annotation_text' : '''The line is pointing down, which is a negative correlation. In this case, that means that colder states are having more COVID cases than warmer states.''',
+                'annotation_text' : '''The line is pointing down, which is a negative correlation. In this case, that means states that are cold happen to have more COVID cases than warmer states.''',
                 'xy': (85, 300),
                 'textxy': (95, 500),
             }
@@ -374,7 +356,7 @@ example_options = {
     'Hot States': {
         'annotations': [
             {
-                'annotation_text' : '''If we change the date to July 20, just 2 months in the past, then we see a positive correlation (hotter states are having more COVID cases than colder states.''',
+                'annotation_text' : '''If we change the date to July 20, just 2 months in the past, then we see a positive correlation (states that are hot happen to have more COVID cases than colder states.''',
                 'xy': (90, 120),
                 'textxy': (95, 230),
             }
@@ -394,7 +376,7 @@ example_options = {
                 'textxy': (end_date, -0.6),
             },
             {
-                'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomenon at the same time, and we can see how the correlation changes over time.',
+                'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomena at the same time, and we can see how the correlation changes over time.',
                 'xy': (datetime.date(2021, 7, 17), 0.28),
                 'textxy': (datetime.date(2021, 1, 1), 0.4),
             },
@@ -455,6 +437,22 @@ example_options = {
         'delay': 0,
         'p': False,
     },
+    'Political Leaning': {
+        'annotations': [
+            {
+                'annotation_text': '''How does a state's political leaning correlate with that state's number of COVID cases? It looks like the spitting image of the previous vaccinations correlations! Just compare to the graph below. That seems to explain the previous phenomenon.''',
+                'xy': (datetime.date(2021, 3, 15), -0.55),
+                'textxy': (datetime.date(2021, 3, 16), -0.56),
+                'alpha': 0.9
+            },
+        ],
+        'X' : ['Political Leaning', 'Vaccinations Completed (Numbers Reported Right Now)'],
+        'Y': 0,
+        'mode': 1,
+        'date': end_date,
+        'delay': 0,
+        'p': False,
+    },
 }
 selected_example_key = st.selectbox('Examples', example_options)
 selected_example = example_options[selected_example_key]
@@ -474,7 +472,7 @@ if mode == 'Correlation over time':
 else:
     show_pvalues = False
 
-is_using_selected_example = selected_example_key != ''
+is_using_selected_example = selected_example_key != 'Select an example here!'
 if selected_X_keys != selected_example['X']:
     is_using_selected_example = False
 if selected_Y_key != list(Y_choices.keys())[selected_example['Y']]:
@@ -522,7 +520,7 @@ for date in dates:
         x['values'].append(x_values)
 
 
-for x in X:
+for x_idx, x in enumerate(X):
     if mode == 'Single date correlation':
         values = x['values'][0]
         fig, ax1 = plt.subplots()
@@ -550,7 +548,7 @@ for x in X:
         ax1.legend()
         ax1.fill_between(dates, correlations, 0, where=correlations > 0, interpolate=True, color='red', alpha=0.3)
         ax1.fill_between(dates, correlations, 0, where=correlations < 0, interpolate=True, color='blue', alpha=0.3)
-    if is_using_selected_example:
+    if is_using_selected_example and x_idx == 0:
         for annotation in selected_example['annotations']:
             fontsize = annotation['fontsize'] if 'fontsize' in annotation else None
             alpha = annotation['alpha'] if 'alpha' in annotation else None
@@ -584,5 +582,21 @@ if mode != 'Single date correlation':
 
 st.caption('COVID cases, deaths, and vaccinations are taken from COVID Act Now API (https://covidactnow.org/). I used 7-day rolling average for daily cases and deaths, while vaccinations are the total number of people fully-vaccinated. Cases, deaths, and vaccinations are per 100k population in that state.')
 
+
+
+hide_streamlit_style = """<style>
+            #MainMenu {visibility: hidden;}
+            </style>"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+footer_text = 'Created by Logan Lebanoff. Contact me at loganlebanoff@gmail.com if you have any suggestions or other correlations you would like to see. Source code is here: https://github.com/loganlebanoff/covid_correlations. '
+hide_menu = """<style>
+footer:before{
+    content:'%s';
+    display:block;
+    position:relative;
+}
+</style>""" % (footer_text)
+st.markdown(hide_menu, unsafe_allow_html=True)
 
 a=0
