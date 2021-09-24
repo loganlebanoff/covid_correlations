@@ -77,7 +77,7 @@ end_date_str = end_date.strftime('%Y-%m-%d')
 
 st.title('COVID-19 Correlation Explorer')
 st.subheader('Find out what relationships exist between number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates among U.S. states.')
-st.markdown('Look at examples below or change the options in the left sidebar by clicking on the "**>**" arrow.')
+st.markdown('Look at examples below, or change the options in the left sidebar by clicking on the "**>**" arrow.')
 
 def get_row_value(daterow, row, population, daterow_idx, field):
     today_cases = daterow[field]
@@ -330,14 +330,6 @@ Y_choices = {
 }
 
 example_options = {
-    'Select an example here!': {
-        'X': ['Temperature'],
-        'Y': 0,
-        'mode': 0,
-        'date': end_date,
-        'delay': 0,
-        'p': False,
-    },
     'Cold States': {
         'annotations': [
             {
@@ -454,7 +446,24 @@ example_options = {
         'p': False,
     },
 }
-selected_example_key = st.selectbox('Examples', example_options)
+if 'selected_example_idx' not in st.session_state:
+    st.session_state['selected_example_idx'] = 0
+st.markdown('<hr style="margin-bottom: 0px; margin-top: 0px;">', unsafe_allow_html=True)
+col1, col2, col3 = st.columns([1,4,1])
+with col1:
+    prev_button = st.button('Previous')
+with col3:
+    next_button = st.button('  Next  ')
+if prev_button and (st.session_state['selected_example_idx'] > 0):
+    st.session_state['selected_example_idx'] -= 1
+if next_button and (st.session_state['selected_example_idx'] < len(list(example_options.keys()))-1):
+    st.session_state['selected_example_idx'] += 1
+selected_example_key = list(example_options.keys())[st.session_state['selected_example_idx']]
+header_selected_example = 'Example: ' + selected_example_key
+page_out_of = f"{st.session_state['selected_example_idx']+1}/{len(list(example_options.keys()))}"
+col2.markdown(f"<h3 style='text-align: center; margin-bottom: 0px; padding-bottom: 0px'>{header_selected_example}</h3>", unsafe_allow_html=True)
+col2.markdown(f"<p style='text-align: center; margin-top: 0px; padding-bottom: 3px'>{page_out_of}</p>", unsafe_allow_html=True)
+st.markdown('<hr style="margin-bottom: 0px; margin-top: 0px;">', unsafe_allow_html=True)
 selected_example = example_options[selected_example_key]
 
 selected_X_keys = st.sidebar.multiselect('Select X data:', X_choices.keys(), default=selected_example['X'], key='x' + selected_example_key)
@@ -472,7 +481,7 @@ if mode == 'Correlation over time':
 else:
     show_pvalues = False
 
-is_using_selected_example = selected_example_key != 'Select an example here!'
+is_using_selected_example = True
 if selected_X_keys != selected_example['X']:
     is_using_selected_example = False
 if selected_Y_key != list(Y_choices.keys())[selected_example['Y']]:
