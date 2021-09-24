@@ -435,10 +435,11 @@ example_options = {
     'Political Leaning': {
         'annotations': [
             {
-                'annotation_text': '''How does a state's political leaning correlate with that state's number of COVID cases? It looks like the spitting image of the previous vaccinations correlations! Just compare to the graph below. That seems to explain the previous phenomenon.''',
+                'annotation_text': '''How does a state's political leaning correlate with that state's number of COVID cases? This graph looks like the spitting image of the previous vaccinations correlations! Just compare to the graph below. That seems to explain the previous phenomenon.''',
                 'xy': (datetime.date(2021, 3, 15), -0.55),
                 'textxy': (datetime.date(2021, 3, 16), -0.56),
-                'alpha': 0.9
+                'alpha': 0.9,
+                'color': '#ffdd80'
             },
         ],
         'X' : ['Political Leaning', 'Vaccinations Completed (Numbers Reported Right Now)'],
