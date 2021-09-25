@@ -4,7 +4,7 @@ import json
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
-from scipy.stats.stats import pearsonr
+from scipy.stats.stats import pearsonr, spearmanr
 from collections import defaultdict
 from dotenv import load_dotenv
 import datetime
@@ -76,7 +76,7 @@ end_date_str = end_date.strftime('%Y-%m-%d')
 
 
 st.title('COVID-19 Correlation Explorer')
-st.subheader('Find out what relationships exist between number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates among U.S. states.')
+st.subheader('Find out what relationships exist between a U.S. state\'s number of COVID cases and several other factors, including vaccination rate, temperature, and mask mandates.')
 st.markdown('Look at examples below, or change the options in the left sidebar by clicking on the "**>**" arrow.')
 
 def get_row_value(daterow, row, population, daterow_idx, field):
@@ -90,10 +90,10 @@ def get_row_value(daterow, row, population, daterow_idx, field):
             lastweek_cases = 0
         else:
             lastweek_cases = lastweek_cases / population * 100000
-        cases = today_cases - lastweek_cases
-    return cases
+        cases = (today_cases - lastweek_cases) * 7  # TODO: multiply by 7 but then need to fix all the annotation coords
+    return cases, today_cases or 0
 
-@st.cache(suppress_st_warning=True, allow_output_mutation=True)
+@st.cache(suppress_st_warning=True, allow_output_mutation=True, show_spinner=False)
 def load_data():
 
     load_dotenv()
@@ -102,7 +102,7 @@ def load_data():
     # VisualCrossingWebServices_api_key = os.environ.get('VisualCrossingWebServices_API_KEY')
     result = requests.get(f'https://api.covidactnow.org/v2/states.timeseries.json?apiKey={covidactnow_api_key}')
     data = result.json()
-
+    a=0
 
     # with open('data/covid_data.json', 'w') as f:
     #     json.dump(data, f, indent=2)
@@ -112,6 +112,8 @@ def load_data():
     date2temps = defaultdict(list)
     date2cases = defaultdict(list)
     date2deaths = defaultdict(list)
+    date2totalcases = defaultdict(list)
+    date2totaldeaths = defaultdict(list)
     date2vaccines = defaultdict(list)
     dates = [start_date + datetime.timedelta(days=x) for x in range((end_date-start_date).days + 1)]
     ealier_dates = [earlier_start_date + datetime.timedelta(days=x) for x in range((end_date-earlier_start_date).days + 1)]
@@ -125,10 +127,14 @@ def load_data():
             if daterow_idx >= 7:
                 try:
                     date = daterow['date']
-                    cases = get_row_value(daterow, row, population, daterow_idx, 'cases')
+                    # if state == 'WY' and date == '2021-06-29':
+                    #     import pdb;pdb.set_trace()
+                    cases, totalcases = get_row_value(daterow, row, population, daterow_idx, 'cases')
                     date2cases[date].append(cases)
-                    deaths = get_row_value(daterow, row, population, daterow_idx, 'deaths')
+                    date2totalcases[date].append(totalcases)
+                    deaths, totaldeaths = get_row_value(daterow, row, population, daterow_idx, 'deaths')
                     date2deaths[date].append(deaths)
+                    date2totaldeaths[date].append(totaldeaths)
                     if 'vaccinationsCompleted' in daterow and daterow['vaccinationsCompleted'] is not None:
                         vaccines = int(daterow['vaccinationsCompleted'])
                         vaccines = vaccines / population * 100000
@@ -218,7 +224,7 @@ def load_data():
 
 
 
-    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states
+    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states
 
     # temp_filename = 'temps_{}.pkl'.format(temp_date)
     # if os.path.exists(temp_filename):
@@ -248,8 +254,8 @@ def load_data():
     #     with open(temp_filename, 'w') as f:
     #         json.dump(rows, f, indent=2)
 
-
-dates, ealier_dates, date2temps, date2cases, date2deaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states = load_data()
+with st.spinner(text="Fetching data. This will take only about 5 seconds..."):
+    dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states = load_data()
 
 
 
@@ -317,15 +323,25 @@ X_choices = {
 }
 
 Y_choices = {
-    'Cases': {
-        'title': 'Cases',
+    'Daily Cases': {
+        'title': 'Daily Cases',
         'y_label': 'Daily Cases per 100k',
         'var': date2cases,
     },
-    'Deaths': {
-        'title': 'Deaths',
+    'Daily Deaths': {
+        'title': 'Daily Deaths',
         'y_label': 'Daily Deaths per 100k',
         'var': date2deaths,
+    },
+    'Total Cases': {
+        'title': 'Total Cases',
+        'y_label': 'Total Cases per 100k',
+        'var': date2totalcases,
+    },
+    'Total Deaths': {
+        'title': 'Total Deaths',
+        'y_label': 'Total Deaths per 100k',
+        'var': date2totaldeaths,
     },
 }
 
@@ -333,9 +349,9 @@ example_options = {
     'Cold States': {
         'annotations': [
             {
-                'annotation_text' : '''The line is pointing down, which is a negative correlation. In this case, that means states that are cold happen to have more COVID cases than warmer states.''',
-                'xy': (85, 300),
-                'textxy': (95, 500),
+                'annotation_text' : '''The line has a downward trend, which is a negative correlation. In this case, that means states that are cold happen to have more COVID cases than warmer states.''',
+                'xy': (85, 2100),
+                'textxy': (95, 3500),
             }
         ],
         'X' : ['Temperature'],
@@ -344,13 +360,14 @@ example_options = {
         'date': end_date,
         'delay': 0,
         'p': False,
+        'coefficient': 'Pearson Correlation',
     },
     'Hot States': {
         'annotations': [
             {
                 'annotation_text' : '''If we change the date to July 20, just 2 months in the past, then we see a positive correlation (states that are hot happen to have more COVID cases than colder states.''',
-                'xy': (90, 120),
-                'textxy': (95, 230),
+                'xy': (90, 840),
+                'textxy': (95, 1610),
                 'color': '#ffdd80'
             }
         ],
@@ -360,6 +377,7 @@ example_options = {
         'date': datetime.date(2021, 7, 20),
         'delay': 0,
         'p': False,
+        'coefficient': 'Pearson Correlation',
     },
     'Temperature Correlation Over Time': {
         'annotations': [
@@ -396,13 +414,14 @@ example_options = {
         'textxy': (end_date, -0.6),
         'delay': 0,
         'p': False,
+        'coefficient': 'Pearson Correlation',
     },
     'Vaccinations': {
         'annotations': [
             {
                 'annotation_text': 'States with more fully-vaccinated people have fewer cases, with a very strong correlation (-0.646).',
-                'xy': (67500, 275),
-                'textxy': (60000, 600),
+                'xy': (67500, 1925),
+                'textxy': (60000, 4200),
             }
         ],
         'X' : ['Vaccinations Completed'],
@@ -411,6 +430,7 @@ example_options = {
         'date': end_date,
         'delay': 0,
         'p': False,
+        'coefficient': 'Pearson Correlation',
     },
     'Spurious Vaccinations Correlation': {
         'annotations': [
@@ -433,6 +453,7 @@ example_options = {
         'date': end_date,
         'delay': 0,
         'p': False,
+        'coefficient': 'Pearson Correlation',
     },
     'Political Leaning': {
         'annotations': [
@@ -450,6 +471,7 @@ example_options = {
         'date': end_date,
         'delay': 0,
         'p': False,
+        'coefficient': 'Pearson Correlation',
     },
     'Mask Mandates': {
         'annotations': [
@@ -465,6 +487,7 @@ example_options = {
         'date': end_date,
         'delay': 0,
         'p': False,
+        'coefficient': 'Pearson Correlation',
     },
 }
 if 'selected_example_idx' not in st.session_state:
@@ -501,6 +524,9 @@ if mode == 'Correlation over time':
     show_pvalues = st.sidebar.checkbox('Show P-Values', selected_example['p'], key='p' + selected_example_key, help='A low p-value (p < 0.05) indicates the correlation is not likely due to mere chance')
 else:
     show_pvalues = False
+advanced_options = st.sidebar.expander('Advanced Options')
+coefficient_options = ['Pearson Correlation', 'Spearman Correlation']
+correlation_coefficient = advanced_options.selectbox('Correlation Coefficient', coefficient_options, coefficient_options.index(selected_example['coefficient']), key='coefficient' + selected_example_key)
 
 is_using_selected_example = True
 if selected_X_keys != selected_example['X']:
@@ -514,6 +540,8 @@ if delay != selected_example['delay']:
 if selected_date != selected_example['date']:
     is_using_selected_example = False
 if show_pvalues != selected_example['p']:
+    is_using_selected_example = False
+if correlation_coefficient != selected_example['coefficient']:
     is_using_selected_example = False
 
 X = [X_choices[k] for k in selected_X_keys]
@@ -541,7 +569,10 @@ for date in dates:
             print(y_val)
             print(delayed_date_str)
             print(date2maskmandate[delayed_date_str])
-        corr, p = pearsonr(x_values, y_val)
+        if correlation_coefficient == 'Pearson Correlation':
+            corr, p = pearsonr(x_values, y_val)
+        else:
+            corr, p = spearmanr(x_values, y_val)
         if np.isnan(corr):
             corr = 0
             p = 0
@@ -556,7 +587,7 @@ for x_idx, x in enumerate(X):
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-        ax1.text(0.05, 0.95, "Pearson Correlation: {:.4f}\nP-Value: {:.6f}".format(x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
+        ax1.text(0.05, 0.95, "{}: {:.4f}\nP-Value: {:.6f}".format(correlation_coefficient, x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
         ax1.scatter(values, y_val, color='blue')
         ax1.set_xlabel(x['x_label'])
         ax1.set_ylabel(y['y_label'])
@@ -571,7 +602,7 @@ for x_idx, x in enumerate(X):
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         ax1.set_ylabel('Correlation/P-Value')
-        ax1.plot(dates, correlations, label='Pearson Correlations', color='black')
+        ax1.plot(dates, correlations, label=correlation_coefficient + 's', color='black')
         if show_pvalues:
             line, = ax1.plot(dates, x['p_values'], label='P-Values', linestyle='dashed', color='gray')
         plt.xticks(rotation=90)
