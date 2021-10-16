@@ -257,6 +257,21 @@ def load_data():
 with st.spinner(text="Fetching data. This will take only about 5 seconds..."):
     dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states = load_data()
 
+def date2totalcasessincefunc(date, date2totalcases=None, sincedate=None):
+    res = []
+    for i in range(len(date2totalcases[date])):
+        val = date2totalcases[date][i] - date2totalcases[sincedate][i]
+        res.append(val)
+    return res
+def date2totaldeathssincefunc(date, date2totaldeaths=None, sincedate=None):
+    res = []
+    for i in range(len(date2totaldeaths[date])):
+        print(sincedate)
+        print(date)
+        print(date2totaldeaths['2020-04-01'])
+        val = date2totaldeaths[date][i] - date2totaldeaths[sincedate][i]
+        res.append(val)
+    return res
 
 
 X_choices = {
@@ -342,6 +357,22 @@ Y_choices = {
         'title': 'Total Deaths',
         'y_label': 'Total Deaths per 100k',
         'var': date2totaldeaths,
+    },
+    'Total Cases Since XX': {
+        'title': 'Total Cases Since XX',
+        'y_label': 'Total Cases per 100k',
+        'var': date2totalcasessincefunc,
+        'var_kwargs': {
+            'date2totalcases': date2totalcases,
+        }
+    },
+    'Total Deaths Since XX': {
+        'title': 'Total Deaths Since XX',
+        'y_label': 'Total Deaths per 100k',
+        'var': date2totaldeathssincefunc,
+        'var_kwargs': {
+            'date2totaldeaths': date2totaldeaths,
+        }
     },
 }
 
@@ -527,6 +558,7 @@ else:
 advanced_options = st.sidebar.expander('Advanced Options')
 coefficient_options = ['Pearson Correlation', 'Spearman Correlation']
 correlation_coefficient = advanced_options.selectbox('Correlation Coefficient', coefficient_options, coefficient_options.index(selected_example['coefficient']), key='coefficient' + selected_example_key)
+sincedate = advanced_options.slider('Since Date', start_date, end_date, value=start_date, step=datetime.timedelta(days=1), key='date' + selected_example_key)
 
 is_using_selected_example = True
 if selected_X_keys != selected_example['X']:
@@ -554,7 +586,13 @@ for date in dates:
     date_str = date.strftime('%Y-%m-%d')
     delayed_date_str = (date + datetime.timedelta(days=-delay)).strftime('%Y-%m-%d')
     y_values = y['var']
-    y_val = y_values[date_str]
+    print(isinstance(y_values, dict))
+    if isinstance(y_values, dict):
+        y_val = y_values[date_str]
+    else:
+        var_kwargs = y['var_kwargs']
+        var_kwargs['sincedate'] = str(sincedate)
+        y_val = y_values(date_str, **var_kwargs)
     us_cases.append(np.mean(y_val))
 
     for x in X:
@@ -587,7 +625,7 @@ for x_idx, x in enumerate(X):
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-        ax1.text(0.05, 0.95, "{}: {:.4f}\nP-Value: {:.6f}".format(correlation_coefficient, x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
+        ax1.text(0.05, 0.95, "{}: {:.4f}\nP-Value: {:.15f}".format(correlation_coefficient, x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
         ax1.scatter(values, y_val, color='blue')
         ax1.set_xlabel(x['x_label'])
         ax1.set_ylabel(y['y_label'])
