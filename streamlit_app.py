@@ -222,9 +222,23 @@ def load_data():
     for state, age in sorted(age_tuples):
         ages.append(age)
 
+    with open('data/population_density.tsv') as f:
+        lines = f.read().splitlines()
+    density_tuples = []
+    for line in lines:
+        items = line.strip().split('\t')
+        if items[1].strip() not in states:
+            continue
+        state = items[1].strip()
+        density = float(items[5].strip())
+        density_tuples.append((state, density))
+    densities = []
+    for state, density in sorted(density_tuples):
+        densities.append(density)
 
 
-    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states
+
+    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, densities, states
 
     # temp_filename = 'temps_{}.pkl'.format(temp_date)
     # if os.path.exists(temp_filename):
@@ -255,7 +269,7 @@ def load_data():
     #         json.dump(rows, f, indent=2)
 
 with st.spinner(text="Fetching data. This will take only about 5 seconds..."):
-    dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, states = load_data()
+    dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, densities, states = load_data()
 
 def date2totalcasessincefunc(date, date2totalcases=None, sincedate=None):
     res = []
@@ -334,6 +348,16 @@ X_choices = {
         'p_values': [],
         'values': [],
         'caption': 'Age information taken from https://en.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_median_age'
+    },
+    'Population Density': {
+        'title': 'State Population Density',
+        'x_label': 'Population Density (people/km^2)',
+        'date': 'none',
+        'var': densities,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+        'caption': 'The measure used here is "population-weighted population density," which takes into account urbanization. For example, New York state actually is not #1 in simple population density (since it is a fairly big state). However, most people living in New York are actually densely populated in NYC. Population-weighted population density takes this into account. Data and idea taken from https://wernerantweiler.ca/blog.php?item=2020-04-12&fbclid=IwAR2CHyOg5bFw3Rbu0c4-m8pc0D4cX2GVfCkzupUoCmUbL4NB1WQAaIZOx0s'
     }
 }
 
@@ -557,8 +581,8 @@ else:
     show_pvalues = False
 advanced_options = st.sidebar.expander('Advanced Options')
 coefficient_options = ['Pearson Correlation', 'Spearman Correlation']
-correlation_coefficient = advanced_options.selectbox('Correlation Coefficient', coefficient_options, coefficient_options.index(selected_example['coefficient']), key='coefficient' + selected_example_key)
-sincedate = advanced_options.slider('Since Date', start_date, end_date, value=start_date, step=datetime.timedelta(days=1), key='date' + selected_example_key)
+correlation_coefficient = advanced_options.selectbox('Correlation Coefficient', coefficient_options, coefficient_options.index(selected_example['coefficient']), key='coefficient' + selected_example_key, help='Pearson correlation is probably the most common measure for correlation, but it is susceptible to outliers. Spearman correlation is more robust to outliers.')
+sincedate = advanced_options.slider('Since Date', start_date, end_date, value=start_date, step=datetime.timedelta(days=1), key='date' + selected_example_key, help='This only applies to "Total Cases Since XX" and "Total Deaths Since XX"')
 
 is_using_selected_example = True
 if selected_X_keys != selected_example['X']:
