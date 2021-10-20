@@ -13,6 +13,7 @@ import streamlit as st
 from matplotlib.offsetbox import (TextArea, DrawingArea, OffsetImage,
                                   AnnotationBbox)
 import textwrap
+import csv
 
 us_state_to_abbrev = {
     "Alabama": "AL",
@@ -67,6 +68,7 @@ us_state_to_abbrev = {
     "Wyoming": "WY",
 }
 states = list(sorted(us_state_to_abbrev.values()))
+abbrev_to_us_state = {v: k for k, v in us_state_to_abbrev.items()}
 
 earlier_start_date = datetime.date(2020, 3, 1)
 start_date = datetime.date(2020, 4, 1)
@@ -236,9 +238,47 @@ def load_data():
     for state, density in sorted(density_tuples):
         densities.append(density)
 
+    with open("data/uninsured.csv") as f:
+        reader = csv.reader(f, delimiter=",", quotechar='"')
+        next(reader, None)  # skip the headers
+        data = [row for row in reader]
+    uninsured_tuples = []
+    for row in data:
+        if row[0] not in us_state_to_abbrev:
+            continue
+        state = us_state_to_abbrev[row[0]]
+        uninsured = float(row[6]) * 100
+        uninsured_tuples.append((state, uninsured))
+    uninsureds = []
+    for state, uninsured in sorted(uninsured_tuples):
+        uninsureds.append(uninsured)
+
+    with open("data/household_income.json") as f:
+        data = json.load(f)
+    data = {item['State']: item['HouseholdIncome'] for item in data}
+    household_incomes = []
+    for state in states:
+        full_state_name = abbrev_to_us_state[state]
+        household_income = data[full_state_name]
+        household_incomes.append(household_income)
+
+    with open('data/healthcare_ranking.tsv') as f:
+        lines = f.read().splitlines()
+    healthcare_ranking_tuples = []
+    cur_rank = 1
+    for line in lines:
+        if line.strip() not in us_state_to_abbrev:
+            continue
+        state = us_state_to_abbrev[line.strip()]
+        healthcare_ranking = cur_rank
+        healthcare_ranking_tuples.append((state, healthcare_ranking))
+        cur_rank += 1
+    healthcare_rankings = []
+    for state, healthcare_ranking in sorted(healthcare_ranking_tuples):
+        healthcare_rankings.append(healthcare_ranking)
 
 
-    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, densities, states
+    return dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, densities, uninsureds, household_incomes, healthcare_rankings, states
 
     # temp_filename = 'temps_{}.pkl'.format(temp_date)
     # if os.path.exists(temp_filename):
@@ -269,7 +309,7 @@ def load_data():
     #         json.dump(rows, f, indent=2)
 
 with st.spinner(text="Fetching data. This will take only about 5 seconds..."):
-    dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, densities, states = load_data()
+    dates, ealier_dates, date2temps, date2cases, date2deaths, date2totalcases, date2totaldeaths, date2maskmandate, date2vaccines, vaccines_today, politicals, ages, densities, uninsureds, household_incomes, healthcare_rankings, states = load_data()
 
 def date2totalcasessincefunc(date, date2totalcases=None, sincedate=None):
     res = []
@@ -358,7 +398,37 @@ X_choices = {
         'p_values': [],
         'values': [],
         'caption': 'The measure used here is "population-weighted population density," which takes into account urbanization. For example, New York state actually is not #1 in simple population density (since it is a fairly big state). However, most people living in New York are actually densely populated in NYC. Population-weighted population density takes this into account. Data and idea taken from https://wernerantweiler.ca/blog.php?item=2020-04-12&fbclid=IwAR2CHyOg5bFw3Rbu0c4-m8pc0D4cX2GVfCkzupUoCmUbL4NB1WQAaIZOx0s'
-    }
+    },
+    'Uninsured Rate': {
+        'title': 'State Uninsured Rate',
+        'x_label': 'Percent Uninsured (%)',
+        'date': 'none',
+        'var': uninsureds,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+        'caption': 'Percent uninsured information taken from https://www.kff.org/other/state-indicator/total-population/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D'
+    },
+    'Median Household Income': {
+        'title': 'State Median Household Income',
+        'x_label': 'Median Household Income ($)',
+        'date': 'none',
+        'var': household_incomes,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+        'caption': 'Household income information taken from https://worldpopulationreview.com/state-rankings/median-household-income-by-state which took its data from the Census ACS survey https://www.census.gov/library/visualizations/interactive/2019-median-household-income.html'
+    },
+    'Healthcare Ranking': {
+        'title': 'State Healthcare Ranking',
+        'x_label': 'Healthcare Ranking',
+        'date': 'none',
+        'var': healthcare_rankings,
+        'correlations': [],
+        'p_values': [],
+        'values': [],
+        'caption': 'Healthcare rankings are {1-50} with lower numbers being better, e.g. Hawaii is #1 with the best healthcare quality and Alabama is #50 with the worst. Healthcare ranking information taken from https://www.usnews.com/news/best-states/rankings/health-care/healthcare-quality'
+    },
 }
 
 Y_choices = {
@@ -381,6 +451,11 @@ Y_choices = {
         'title': 'Total Deaths',
         'y_label': 'Total Deaths per 100k',
         'var': date2totaldeaths,
+    },
+    'Total Vaccinations': {
+        'title': 'Total Vaccinations',
+        'y_label': 'Total Vaccinations per 100k',
+        'var': date2vaccines,
     },
     'Total Cases Since XX': {
         'title': 'Total Cases Since XX',
