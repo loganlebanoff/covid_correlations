@@ -733,19 +733,18 @@ for x_idx, x in enumerate(X):
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-        if len(x['values']) == 0:
-            continue
-        values = x['values'][0]
-        ax1.text(0.05, 0.95, "{}: {:.4f}\nP-Value: {:.15f}".format(correlation_coefficient, x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
-        ax1.scatter(values, y_val, color='blue')
-        ax1.set_xlabel(x['x_label'])
-        ax1.set_ylabel(y['y_label'])
-        best_fit_x = list(np.unique(values))
-        if len(best_fit_x) > 1:
-            best_fit_y = np.poly1d(np.polyfit(values, y_val, 1))(np.unique(values))
-            ax1.plot(best_fit_x, best_fit_y, color='blue')
-        for val, case, state in zip(values, y_val, states):
-            ax1.annotate(state, (val, case), color='blue')
+        if len(x['values']) > 0:
+            values = x['values'][0]
+            ax1.text(0.05, 0.95, "{}: {:.4f}\nP-Value: {:.15f}".format(correlation_coefficient, x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
+            ax1.scatter(values, y_val, color='blue')
+            ax1.set_xlabel(x['x_label'])
+            ax1.set_ylabel(y['y_label'])
+            best_fit_x = list(np.unique(values))
+            if len(best_fit_x) > 1:
+                best_fit_y = np.poly1d(np.polyfit(values, y_val, 1))(np.unique(values))
+                ax1.plot(best_fit_x, best_fit_y, color='blue')
+            for val, case, state in zip(values, y_val, states):
+                ax1.annotate(state, (val, case), color='blue')
     else:
         x_dates = dates[:len(x['correlations'])]
         correlations = np.array(x['correlations'])
