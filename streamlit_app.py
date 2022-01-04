@@ -730,10 +730,12 @@ for date in dates:
 
 for x_idx, x in enumerate(X):
     if mode == 'Single date correlation':
-        values = x['values'][0]
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        if len(x['values]) == 0:
+            continue
+        values = x['values'][0]
         ax1.text(0.05, 0.95, "{}: {:.4f}\nP-Value: {:.15f}".format(correlation_coefficient, x['correlations'][0], x['p_values'][0]), verticalalignment='top', bbox=props, transform=ax1.transAxes)
         ax1.scatter(values, y_val, color='blue')
         ax1.set_xlabel(x['x_label'])
