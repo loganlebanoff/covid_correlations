@@ -708,6 +708,7 @@ for date in dates:
         elif x['date'] == 'none':
             x_values = x['var']
         if len(x_values) < len(y_val):
+            y_val = y_val[:len(x_values)]
             continue
         if len(x_values) != len(y_val):
             print(x_values)
