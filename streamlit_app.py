@@ -72,7 +72,8 @@ abbrev_to_us_state = {v: k for k, v in us_state_to_abbrev.items()}
 
 earlier_start_date = datetime.date(2020, 3, 1)
 start_date = datetime.date(2020, 4, 1)
-end_date = datetime.date(2021, 9, 20)
+end_date = datetime.date.today()
+end_date_temp = datetime.date(2021, 9, 20)
 start_date_str = start_date.strftime('%Y-%m-%d')
 end_date_str = end_date.strftime('%Y-%m-%d')
 
