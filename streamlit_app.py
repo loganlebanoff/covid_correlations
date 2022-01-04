@@ -710,27 +710,20 @@ for date in dates:
         else:
             x_values = None
         is_incomplete = False
-        if x_values is None:
-            is_incomplete = True
+        if len(x_values) == 0:
+            continue
+        if len(x_values) != len(y_val):
+            print(x_values)
+            print(y_val)
+            print(delayed_date_str)
+            print(date2maskmandate[delayed_date_str])
+        if correlation_coefficient == 'Pearson Correlation':
+            corr, p = pearsonr(x_values, y_val)
+        else:
+            corr, p = spearmanr(x_values, y_val)
+        if np.isnan(corr):
             corr = 0
             p = 0
-        else:
-            if len(x_values) < len(y_val):
-                y_val = y_val[:len(x_values)]
-            if len(x_values) != len(y_val):
-                print(x_values)
-                print(y_val)
-                print(delayed_date_str)
-                print(date2maskmandate[delayed_date_str])
-            if correlation_coefficient == 'Pearson Correlation':
-                corr, p = pearsonr(x_values, y_val)
-            else:
-                corr, p = spearmanr(x_values, y_val)
-            if np.isnan(corr):
-                corr = 0
-                p = 0
-        if is_incomplete:
-            x_values.extend([0] * (len(dates) - len(x_values)))
         x['correlations'].append(corr)
         x['p_values'].append(p)
         x['values'].append(x_values)
@@ -753,17 +746,18 @@ for x_idx, x in enumerate(X):
         for val, case, state in zip(values, y_val, states):
             ax1.annotate(state, (val, case), color='blue')
     else:
+        x_dates = dates[:len(x['correlations'])
         correlations = np.array(x['correlations'])
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
         ax1.set_ylabel('Correlation/P-Value')
-        ax1.plot(dates, correlations, label=correlation_coefficient + 's', color='black')
+        ax1.plot(x_dates, correlations, label=correlation_coefficient + 's', color='black')
         if show_pvalues:
-            line, = ax1.plot(dates, x['p_values'], label='P-Values', linestyle='dashed', color='gray')
+            line, = ax1.plot(x_dates, x['p_values'], label='P-Values', linestyle='dashed', color='gray')
         plt.xticks(rotation=90)
         ax1.legend()
-        ax1.fill_between(dates, correlations, 0, where=correlations > 0, interpolate=True, color='red', alpha=0.3)
-        ax1.fill_between(dates, correlations, 0, where=correlations < 0, interpolate=True, color='blue', alpha=0.3)
+        ax1.fill_between(x_dates, correlations, 0, where=correlations > 0, interpolate=True, color='red', alpha=0.3)
+        ax1.fill_between(x_dates, correlations, 0, where=correlations < 0, interpolate=True, color='blue', alpha=0.3)
     if is_using_selected_example and x_idx == 0:
         for annotation in selected_example['annotations']:
             fontsize = annotation['fontsize'] if 'fontsize' in annotation else 12
