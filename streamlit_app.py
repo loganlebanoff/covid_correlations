@@ -707,9 +707,10 @@ for date in dates:
             x_values = x['var'][date_str]
         elif x['date'] == 'none':
             x_values = x['var']
+        is_incomplete = False
         if len(x_values) < len(y_val):
             y_val = y_val[:len(x_values)]
-            continue
+            is_incomplete = True
         if len(x_values) != len(y_val):
             print(x_values)
             print(y_val)
@@ -722,6 +723,8 @@ for date in dates:
         if np.isnan(corr):
             corr = 0
             p = 0
+        if is_incomplete:
+            x_values.extend([0] * (len(dates) - len(x_values)))
         x['correlations'].append(corr)
         x['p_values'].append(p)
         x['values'].append(x_values)
