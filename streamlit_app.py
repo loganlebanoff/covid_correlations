@@ -746,7 +746,7 @@ for x_idx, x in enumerate(X):
         for val, case, state in zip(values, y_val, states):
             ax1.annotate(state, (val, case), color='blue')
     else:
-        x_dates = dates[:len(x['correlations'])
+        x_dates = dates[:len(x['correlations'])]
         correlations = np.array(x['correlations'])
         fig, ax1 = plt.subplots()
         ax1.set_title(x['title'] + '-' + y['title'] + ' Correlation')
