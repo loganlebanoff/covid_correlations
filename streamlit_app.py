@@ -707,6 +707,9 @@ for date in dates:
             x_values = x['var'][date_str]
         elif x['date'] == 'none':
             x_values = x['var']
+        if len(x_values) < len(y_val):
+            while len(x_values) < len(y_val):
+                x_values.append(0)
         if len(x_values) != len(y_val):
             print(x_values)
             print(y_val)
