@@ -707,22 +707,27 @@ for date in dates:
             x_values = x['var'][date_str]
         elif x['date'] == 'none':
             x_values = x['var']
+        else:
+            x_values = None
         is_incomplete = False
-        if len(x_values) < len(y_val):
+        if x_values is None:
             y_val = y_val[:len(x_values)]
             is_incomplete = True
-        if len(x_values) != len(y_val):
-            print(x_values)
-            print(y_val)
-            print(delayed_date_str)
-            print(date2maskmandate[delayed_date_str])
-        if correlation_coefficient == 'Pearson Correlation':
-            corr, p = pearsonr(x_values, y_val)
-        else:
-            corr, p = spearmanr(x_values, y_val)
-        if np.isnan(corr):
             corr = 0
             p = 0
+        else:
+            if len(x_values) != len(y_val):
+                print(x_values)
+                print(y_val)
+                print(delayed_date_str)
+                print(date2maskmandate[delayed_date_str])
+            if correlation_coefficient == 'Pearson Correlation':
+                corr, p = pearsonr(x_values, y_val)
+            else:
+                corr, p = spearmanr(x_values, y_val)
+            if np.isnan(corr):
+                corr = 0
+                p = 0
         if is_incomplete:
             x_values.extend([0] * (len(dates) - len(x_values)))
         x['correlations'].append(corr)
