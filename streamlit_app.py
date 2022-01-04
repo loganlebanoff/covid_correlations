@@ -493,7 +493,7 @@ example_options = {
         'X' : ['Temperature'],
         'Y': 0,
         'mode': 0,
-        'date': end_date,
+        'date': end_date_temp,
         'delay': 0,
         'p': False,
         'coefficient': 'Pearson Correlation',
@@ -519,8 +519,8 @@ example_options = {
         'annotations': [
             {
                 'annotation_text' : '''''',
-                'xy': (end_date, -0.2),
-                'textxy': (end_date, -0.6),
+                'xy': (end_date_temp, -0.2),
+                'textxy': (end_date_temp, -0.6),
             },
             {
                 'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomena at the same time, and we can see how the correlation changes over time.',
@@ -545,9 +545,9 @@ example_options = {
         'X' : ['Temperature'],
         'Y': 0,
         'mode': 1,
-        'date': end_date,
-        'xy': (end_date, -0.2),
-        'textxy': (end_date, -0.6),
+        'date': end_date_temp,
+        'xy': (end_date_temp, -0.2),
+        'textxy': (end_date_temp, -0.6),
         'delay': 0,
         'p': False,
         'coefficient': 'Pearson Correlation',
