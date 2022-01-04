@@ -126,6 +126,8 @@ def load_data():
             continue
         population = row['population']
         prev_vaccines = 0
+        vaccinationsCompleted = row['actuals']['vaccinationsCompleted']
+        maxvaccinationsCompleted = 0
         for daterow_idx, daterow in enumerate(row['actualsTimeseries']):
             if daterow_idx >= 7:
                 try:
@@ -140,6 +142,7 @@ def load_data():
                     date2totaldeaths[date].append(totaldeaths)
                     if 'vaccinationsCompleted' in daterow and daterow['vaccinationsCompleted'] is not None:
                         vaccines = int(daterow['vaccinationsCompleted'])
+                        maxvaccinationsCompleted = max(maxvaccinationsCompleted, vaccines)
                         vaccines = vaccines / population * 100000
                     else:
                         vaccines = prev_vaccines
@@ -150,7 +153,9 @@ def load_data():
                     print(date)
                     print(state)
                     raise
-        vaccines_today.append(row['actuals']['vaccinationsCompleted'] / population * 100000)
+        if vaccinationsCompleted is None:
+            vaccinationsCompleted = maxvaccinationsCompleted
+        vaccines_today.append(vaccinationsCompleted / population * 100000)
 
 
     for state_idx, state in enumerate(tqdm(states)):
