@@ -708,8 +708,7 @@ for date in dates:
         elif x['date'] == 'none':
             x_values = x['var']
         if len(x_values) < len(y_val):
-            while len(x_values) < len(y_val):
-                y_val = y_val[:-1]
+            continue
         if len(x_values) != len(y_val):
             print(x_values)
             print(y_val)
