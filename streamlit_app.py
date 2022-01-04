@@ -691,7 +691,6 @@ for date in dates:
     date_str = date.strftime('%Y-%m-%d')
     delayed_date_str = (date + datetime.timedelta(days=-delay)).strftime('%Y-%m-%d')
     y_values = y['var']
-    print(isinstance(y_values, dict))
     if isinstance(y_values, dict):
         y_val = y_values[date_str]
     else:
