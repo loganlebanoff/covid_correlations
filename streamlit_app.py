@@ -711,11 +711,12 @@ for date in dates:
             x_values = None
         is_incomplete = False
         if x_values is None:
-            y_val = y_val[:len(x_values)]
             is_incomplete = True
             corr = 0
             p = 0
         else:
+            if len(x_values) < len(y_val):
+                y_val = y_val[:len(x_values)]
             if len(x_values) != len(y_val):
                 print(x_values)
                 print(y_val)
