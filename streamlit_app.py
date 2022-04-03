@@ -72,7 +72,7 @@ abbrev_to_us_state = {v: k for k, v in us_state_to_abbrev.items()}
 
 earlier_start_date = datetime.date(2020, 3, 1)
 start_date = datetime.date(2020, 4, 1)
-end_date = datetime.date.today() - datetime.timedelta(days=1)
+end_date = datetime.date.today() - datetime.timedelta(days=3)
 end_date_temp = datetime.date(2021, 9, 20)
 start_date_str = start_date.strftime('%Y-%m-%d')
 end_date_str = end_date.strftime('%Y-%m-%d')
@@ -107,8 +107,8 @@ def load_data():
     data = result.json()
     a=0
 
-    # with open('data/covid_data.json', 'w') as f:
-    #     json.dump(data, f, indent=2)
+    with open('data/covid_data.json', 'w') as f:
+        json.dump(data, f, indent=2)
 
     vaccines_today = []
     temps = []
@@ -127,6 +127,7 @@ def load_data():
         population = row['population']
         prev_vaccines = 0
         vaccinationsCompleted = row['actuals']['vaccinationsCompleted']
+        print(state, vaccinationsCompleted)
         maxvaccinationsCompleted = 0
         for daterow_idx, daterow in enumerate(row['actualsTimeseries']):
             if daterow_idx >= 7:
@@ -326,9 +327,9 @@ def date2totalcasessincefunc(date, date2totalcases=None, sincedate=None):
 def date2totaldeathssincefunc(date, date2totaldeaths=None, sincedate=None):
     res = []
     for i in range(len(date2totaldeaths[date])):
-        print(sincedate)
-        print(date)
-        print(date2totaldeaths['2020-04-01'])
+        # print(sincedate)
+        # print(date)
+        # print(date2totaldeaths['2020-04-01'])
         val = date2totaldeaths[date][i] - date2totaldeaths[sincedate][i]
         res.append(val)
     return res
@@ -482,76 +483,76 @@ Y_choices = {
 }
 
 example_options = {
-    'Cold States': {
-        'annotations': [
-            {
-                'annotation_text' : '''The line has a downward trend, which is a negative correlation. In this case, that means states that are cold happen to have more COVID cases than warmer states.''',
-                'xy': (85, 2100),
-                'textxy': (95, 3500),
-            }
-        ],
-        'X' : ['Temperature'],
-        'Y': 0,
-        'mode': 0,
-        'date': end_date_temp,
-        'delay': 0,
-        'p': False,
-        'coefficient': 'Pearson Correlation',
-    },
-    'Hot States': {
-        'annotations': [
-            {
-                'annotation_text' : '''If we change the date to July 20, just 2 months in the past, then we see a positive correlation (states that are hot happen to have more COVID cases than colder states.''',
-                'xy': (90, 840),
-                'textxy': (95, 1610),
-                'color': '#ffdd80'
-            }
-        ],
-        'X' : ['Temperature'],
-        'Y': 0,
-        'mode': 0,
-        'date': datetime.date(2021, 7, 20),
-        'delay': 0,
-        'p': False,
-        'coefficient': 'Pearson Correlation',
-    },
-    'Temperature Correlation Over Time': {
-        'annotations': [
-            {
-                'annotation_text' : '''''',
-                'xy': (end_date_temp, -0.2),
-                'textxy': (end_date_temp, -0.6),
-            },
-            {
-                'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomena at the same time, and we can see how the correlation changes over time.',
-                'xy': (datetime.date(2021, 7, 17), 0.28),
-                'textxy': (datetime.date(2021, 1, 1), 0.35),
-                'color': '#ffdd80',
-                'alpha': 0.9
-            },
-            {
-                'annotation_text' : 'Interestingly, it seems to follow the pattern that hot states get more cases in the summer (so people gather inside in those states), and cold states get more cases in the winter (again, so people gather inside).',
-                'xy': (datetime.date(2020, 10, 15), -0.5),
-                'textxy': (datetime.date(2020, 4, 1), -0.6),
-                'alpha': 0.9
-            },
-            {
-                'annotation_text' : '',
-                'xy': (datetime.date(2020, 7, 15), 0),
-                'textxy': (datetime.date(2020, 7, 1), -0.275),
-                'color': '#ffdd80'
-            },
-        ],
-        'X' : ['Temperature'],
-        'Y': 0,
-        'mode': 1,
-        'date': end_date_temp,
-        'xy': (end_date_temp, -0.2),
-        'textxy': (end_date_temp, -0.6),
-        'delay': 0,
-        'p': False,
-        'coefficient': 'Pearson Correlation',
-    },
+    # 'Cold States': {
+    #     'annotations': [
+    #         {
+    #             'annotation_text' : '''The line has a downward trend, which is a negative correlation. In this case, that means states that are cold happen to have more COVID cases than warmer states.''',
+    #             'xy': (85, 2100),
+    #             'textxy': (95, 3500),
+    #         }
+    #     ],
+    #     'X' : ['Temperature'],
+    #     'Y': 0,
+    #     'mode': 0,
+    #     'date': end_date_temp,
+    #     'delay': 0,
+    #     'p': False,
+    #     'coefficient': 'Pearson Correlation',
+    # },
+    # 'Hot States': {
+    #     'annotations': [
+    #         {
+    #             'annotation_text' : '''If we change the date to July 20, just 2 months in the past, then we see a positive correlation (states that are hot happen to have more COVID cases than colder states.''',
+    #             'xy': (90, 840),
+    #             'textxy': (95, 1610),
+    #             'color': '#ffdd80'
+    #         }
+    #     ],
+    #     'X' : ['Temperature'],
+    #     'Y': 0,
+    #     'mode': 0,
+    #     'date': datetime.date(2021, 7, 20),
+    #     'delay': 0,
+    #     'p': False,
+    #     'coefficient': 'Pearson Correlation',
+    # },
+    # 'Temperature Correlation Over Time': {
+    #     'annotations': [
+    #         {
+    #             'annotation_text' : '''''',
+    #             'xy': (end_date_temp, -0.2),
+    #             'textxy': (end_date_temp, -0.6),
+    #         },
+    #         {
+    #             'annotation_text' : 'If we look at Correlation Over Time, then we see the same two phenomena at the same time, and we can see how the correlation changes over time.',
+    #             'xy': (datetime.date(2021, 7, 17), 0.28),
+    #             'textxy': (datetime.date(2021, 1, 1), 0.35),
+    #             'color': '#ffdd80',
+    #             'alpha': 0.9
+    #         },
+    #         {
+    #             'annotation_text' : 'Interestingly, it seems to follow the pattern that hot states get more cases in the summer (so people gather inside in those states), and cold states get more cases in the winter (again, so people gather inside).',
+    #             'xy': (datetime.date(2020, 10, 15), -0.5),
+    #             'textxy': (datetime.date(2020, 4, 1), -0.6),
+    #             'alpha': 0.9
+    #         },
+    #         {
+    #             'annotation_text' : '',
+    #             'xy': (datetime.date(2020, 7, 15), 0),
+    #             'textxy': (datetime.date(2020, 7, 1), -0.275),
+    #             'color': '#ffdd80'
+    #         },
+    #     ],
+    #     'X' : ['Temperature'],
+    #     'Y': 0,
+    #     'mode': 1,
+    #     'date': end_date_temp,
+    #     'xy': (end_date_temp, -0.2),
+    #     'textxy': (end_date_temp, -0.6),
+    #     'delay': 0,
+    #     'p': False,
+    #     'coefficient': 'Pearson Correlation',
+    # },
     'Vaccinations': {
         'annotations': [
             {
@@ -711,11 +712,11 @@ for date in dates:
         is_incomplete = False
         if len(x_values) == 0:
             continue
-        if len(x_values) != len(y_val):
-            print(x_values)
-            print(y_val)
-            print(delayed_date_str)
-            print(date2maskmandate[delayed_date_str])
+        # if len(x_values) != len(y_val):
+        #     print(x_values)
+        #     print(y_val)
+        #     print(delayed_date_str)
+        #     print(date2maskmandate[delayed_date_str])
         if correlation_coefficient == 'Pearson Correlation':
             corr, p = pearsonr(x_values, y_val)
         else:

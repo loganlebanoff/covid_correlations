@@ -4,3 +4,4 @@ matplotlib
 python-dotenv
 scipy
 numpy
+scikit-learn
