@@ -664,7 +664,7 @@ else:
 advanced_options = st.sidebar.expander('Advanced Options')
 coefficient_options = ['Spearman Correlation', 'Pearson Correlation']
 correlation_coefficient = advanced_options.selectbox('Correlation Coefficient', coefficient_options, coefficient_options.index(selected_example['coefficient']), key='coefficient' + selected_example_key, help='Pearson correlation is probably the most common measure for correlation, but it is susceptible to outliers. Spearman correlation is more robust to outliers.')
-sincedate = advanced_options.slider('Since Date', start_date, end_date, value=start_date, step=datetime.timedelta(days=1), key='date' + selected_example_key, help='This only applies to "Total Cases Since XX" and "Total Deaths Since XX"')
+sincedate = advanced_options.slider('Since Date', start_date, end_date, value=start_date, step=datetime.timedelta(days=1), key='sincedate' + selected_example_key, help='This only applies to "Total Cases Since XX" and "Total Deaths Since XX"')
 
 is_using_selected_example = True
 if selected_X_keys != selected_example['X']:
